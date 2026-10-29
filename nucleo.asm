@@ -42,7 +42,7 @@ handle_input:
     lw   $a0, 0($a0)
 
     # --- Check for 'w' (rotate) ---
-    li   $t0, 0x77
+    li   $t0, TECLA_W
     bne  $t5, $t0, check_a
 
     # Calculate next orientation: (current + 1) % 4
@@ -69,7 +69,7 @@ handle_input:
     j    input_done
 
 check_a:
-    li   $t0, 0x61
+    li   $t0, TECLA_A 
     bne  $t5, $t0, check_d
     addi $a1, $a1, -1
     jal  check_collision
@@ -78,7 +78,7 @@ check_a:
     j    input_done
 
 check_d:
-    li   $t0, 0x64
+    li   $t0, TECLA_D
     bne  $t5, $t0, check_s
     addi $a1, $a1, 1
     jal  check_collision
@@ -87,7 +87,7 @@ check_d:
     j    input_done
 
 check_s:
-    li   $t0, 0x73
+    li   $t0, TECLA_S
     bne  $t5, $t0, check_q
     move $s4, $a2 # Save original Y
     addi $a2, $a2, 1
@@ -104,7 +104,7 @@ land_piece:
     j    input_done
     
 check_q:
-    li   $t0, 0x71
+    li   $t0, TECLA_Q
     bne  $t5, $t0, input_done
     jal  exit_game
 
@@ -352,11 +352,11 @@ game_over_loop:
     lw   $t5, 4($k0) # Read the key press
 
     # Check for 'r' (retry)
-    li   $t0, 0x72 # ASCII for 'r'
+    li   $t0, TECLA_R # ASCII for 'r'
     beq  $t5, $t0, do_restart
 
     # Check for 'q' (quit)
-    li   $t0, 0x71 # ASCII for 'q'
+    li   $t0, TECLA_Q # ASCII for 'q'
     beq  $t5, $t0, exit_game
 
     # If another key is pressed, just keep looping

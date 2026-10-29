@@ -1,5 +1,21 @@
 # datos.asm - Keilor
 # Constantes .eqv y variables globales. Cada quien escribe solo en su sección.
+
+# ===== CONSTANTES =====
+.eqv ANCHO            10     # columnas del tablero
+.eqv ALTO             20     # filas del tablero
+.eqv CELDAS           200    # ANCHO * ALTO
+.eqv TABLERO_BYTES    800    # CELDAS * 4
+.eqv NIVEL_MAX        10
+.eqv LINEAS_POR_NIVEL 5
+.eqv TECLA_W 0x77   # 'w'
+.eqv TECLA_A 0x61   # 'a'
+.eqv TECLA_S 0x73   # 's'
+.eqv TECLA_D 0x64
+.eqv TECLA_Q 0x71
+.eqv TECLA_R 0x72
+.eqv TECLA_P 0X70
+.eqv TECLA_ESPACIO 0x20
 .data
 
 # ===== NÚCLEO (Keilor) =====
