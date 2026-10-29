@@ -68,6 +68,33 @@ game_loop:
     la   $s0, CURRENT_PIECE_TYPE
     lw   $s0, 0($s0)
     la   $s1, CURRENT_PIECE_ORIENTATION
+        lw   $s1, 0($s1)
+
+    sll  $t0, $s0, 2
+    la   $t1, MASTER_SHAPE_TABLE
+    add  $t1, $t1, $t0
+    lw   $t1, 0($t1)
+    sll  $t0, $s1, 2
+    add  $a0, $t1, $t0
+    lw   $a0, 0($a0)
+
+    la   $t0, CURRENT_PIECE_X
+    lw   $a1, 0($t0)
+    la   $t0, CURRENT_PIECE_Y
+    lw   $a2, 0($t0)
+
+    jal  draw_tetromino
+
+    # Handle player input and gravity
+    jal  handle_input
+    jal  apply_gravity
+
+    # Frame delay
+    li   $v0, 32
+    li   $a0, 100
+    syscall
+
+    b    game_loop
 
 # 3. procedimientos al final
 .include "nucleo.asm"
