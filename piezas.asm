@@ -2,6 +2,8 @@
 # Tablas de las 7 piezas y sus rotaciones (solo datos).
 .data
 
+.align 2
+
 # --- NEW ROTATION DATA STRUCTURES ---
 # Master table pointing to the rotation table for each piece type
 MASTER_SHAPE_TABLE:

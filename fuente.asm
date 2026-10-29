@@ -2,6 +2,8 @@
 # Mapas de bits de la fuente 3x5 (números y letras).
 .data
 
+.align 2
+
 FONT_TABLE:
     .word FONT_0, FONT_1, FONT_2, FONT_3, FONT_4, FONT_5, FONT_6, FONT_7, FONT_8, FONT_9
 

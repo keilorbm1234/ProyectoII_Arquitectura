@@ -71,6 +71,8 @@ GAMEOVER_TEXT:  .asciiz "GAME OVER"
 RETRY_TEXT:     .asciiz "RETRY (R)"
 HI_TEXT:        .asciiz "HI"
 
+.align 2
+
 # --- NEW: The Virtual Playfield ---
 # An array of 512 words (16x32) to represent the game board.
 # 0 = empty, 1 = occupied by a frozen piece.
@@ -82,7 +84,3 @@ OVER_TEXT:        .asciiz "OVER"
 RETRY_ONLY_TEXT:  .asciiz "RETRY"
 R_PARENS_TEXT:    .asciiz ")R("
 
-
-PRUEBA: .asciiz "includes OK\n"
-# ===== LÓGICA (Andrey) =====
-# ===== GRÁFICOS (Jorge) =====
