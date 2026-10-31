@@ -15,12 +15,12 @@ handle_input:
     sw   $s3, 4($sp)
     sw   $s4, 0($sp)
 
-    la   $k0, ADDR_KBRD
-    lw   $k0, 0($k0)
-    lw   $k1, 0($k0)
-    beq  $k1, $zero, input_done
+    la   $t8, ADDR_KBRD
+    lw   $t8, 0($t8)         # $t8 = 0xffff0000 (control del teclado)
+    lw   $t9, 0($t8)         # $t9 = 1 si hay tecla nueva
+    beq  $t9, $zero, input_done
 
-    lw   $t5, 4($k0)
+    lw   $t5, 4($t8)         # $t5 = código ASCII de la tecla
 
     # --- Load current piece state ---
     la   $s0, CURRENT_PIECE_TYPE
@@ -344,12 +344,12 @@ game_over_loop:
     jal draw_game_over_screen
 
     # Check for keyboard input
-    la   $k0, ADDR_KBRD
-    lw   $k0, 0($k0)
-    lw   $k1, 0($k0)
-    beq  $k1, $zero, wait_for_input # If no key pressed, wait
+    la   $t8, ADDR_KBRD
+    lw   $t8, 0($t8)
+    lw   $t9, 0($t8)
+    beq  $t9, $zero, wait_for_input # If no key pressed, wait
 
-    lw   $t5, 4($k0) # Read the key press
+    lw   $t5, 4($t8) # Read the key press
 
     # Check for 'r' (retry)
     li   $t0, TECLA_R # ASCII for 'r'
