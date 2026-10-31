@@ -3,6 +3,22 @@
 .text
 
 #-----------------------------------------------------------------------------
+# nuc_leer_tecla: revisa el Keyboard MMIO.
+# Retorna: $v0 = código ASCII de la tecla, o 0 si no hay tecla nueva.
+# Procedimiento hoja (no llama a nadie): no necesita guardar $ra.
+#-----------------------------------------------------------------------------
+nuc_leer_tecla:
+    la   $t8, ADDR_KBRD
+    lw   $t8, 0($t8)          # $t8 = 0xffff0000
+    lw   $t9, 0($t8)          # $t9 = 1 si hay tecla nueva
+    beq  $t9, $zero, nuc_lt_nada
+    lw   $v0, 4($t8)          # $v0 = código de la tecla
+    jr   $ra
+nuc_lt_nada:
+    li   $v0, 0
+    jr   $ra
+
+#-----------------------------------------------------------------------------
 # handle_input: Handles movement and safe rotation.
 #-----------------------------------------------------------------------------
 handle_input:
@@ -15,12 +31,9 @@ handle_input:
     sw   $s3, 4($sp)
     sw   $s4, 0($sp)
 
-    la   $t8, ADDR_KBRD
-    lw   $t8, 0($t8)         # $t8 = 0xffff0000 (control del teclado)
-    lw   $t9, 0($t8)         # $t9 = 1 si hay tecla nueva
-    beq  $t9, $zero, input_done
-
-    lw   $t5, 4($t8)         # $t5 = código ASCII de la tecla
+    jal  nuc_leer_tecla
+    beq  $v0, $zero, input_done   # no hay tecla: salir
+    move $t5, $v0                 # $t5 = tecla (el resto del código usa $t5)
 
     # --- Load current piece state ---
     la   $s0, CURRENT_PIECE_TYPE
