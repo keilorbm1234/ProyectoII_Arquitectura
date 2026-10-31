@@ -14,8 +14,15 @@
 .eqv TECLA_D 0x64
 .eqv TECLA_Q 0x71
 .eqv TECLA_R 0x72
-.eqv TECLA_P 0X70
+.eqv TECLA_P 0x70
 .eqv TECLA_ESPACIO 0x20
+
+# Estados del juego
+.eqv EST_MENU      0
+.eqv EST_JUGANDO   1
+.eqv EST_PAUSA     2
+.eqv EST_GAMEOVER  3
+.eqv EST_VICTORIA  4
 .data
 
 # ===== NÚCLEO (Keilor) =====
@@ -81,7 +88,7 @@ GRAVITY_INTERVAL:  .word 1000   # Gravity happens every 1000 ms (1 second)
 
 ## NEW: Game state, high score, and UI text data
 HIGH_SCORE:     .word 0           # Persists across games
-GAME_OVER_FLAG: .word 0           # 0 = playing, 1 = game over
+ESTADO:         .word EST_MENU      # el juego arranca en el menú
 
 GAMEOVER_TEXT:  .asciiz "GAME OVER"
 RETRY_TEXT:     .asciiz "RETRY (R)"

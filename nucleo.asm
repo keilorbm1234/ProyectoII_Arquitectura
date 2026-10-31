@@ -3,6 +3,63 @@
 .text
 
 #-----------------------------------------------------------------------------
+# nuc_leer_tecla: revisa el Keyboard MMIO.
+# Retorna: $v0 = código ASCII de la tecla, o 0 si no hay tecla nueva.
+# Procedimiento hoja (no llama a nadie): no necesita guardar $ra.
+#-----------------------------------------------------------------------------
+nuc_leer_tecla:
+    la   $t8, ADDR_KBRD
+    lw   $t8, 0($t8)          # $t8 = 0xffff0000
+    lw   $t9, 0($t8)          # $t9 = 1 si hay tecla nueva
+    beq  $t9, $zero, nuc_lt_nada
+    lw   $v0, 4($t8)          # $v0 = código de la tecla
+    jr   $ra
+nuc_lt_nada:
+    li   $v0, 0
+    jr   $ra
+
+#-----------------------------------------------------------------------------
+# nuc_estado_jugando: un ciclo del juego (dibujar, leer teclado, gravedad).
+#-----------------------------------------------------------------------------
+nuc_estado_jugando:
+    addi $sp, $sp, -12
+    sw   $ra, 8($sp)
+    sw   $s0, 4($sp)
+    sw   $s1, 0($sp)
+
+    jal  draw_scene              # fondo y bloques fijados
+    jal  draw_score
+    jal  draw_high_score
+
+    # --- Dibujar la pieza actual ---
+    la   $s0, CURRENT_PIECE_TYPE
+    lw   $s0, 0($s0)
+    la   $s1, CURRENT_PIECE_ORIENTATION
+    lw   $s1, 0($s1)
+
+    sll  $t0, $s0, 2
+    la   $t1, MASTER_SHAPE_TABLE
+    add  $t1, $t1, $t0
+    lw   $t1, 0($t1)
+    sll  $t0, $s1, 2
+    add  $a0, $t1, $t0
+    lw   $a0, 0($a0)             # $a0 = forma de la pieza
+
+    la   $t0, CURRENT_PIECE_X
+    lw   $a1, 0($t0)
+    la   $t0, CURRENT_PIECE_Y
+    lw   $a2, 0($t0)
+    jal  draw_tetromino
+
+    jal  handle_input
+    jal  apply_gravity
+
+    lw   $s1, 0($sp)
+    lw   $s0, 4($sp)
+    lw   $ra, 8($sp)
+    addi $sp, $sp, 12
+    jr   $ra
+#-----------------------------------------------------------------------------
 # handle_input: Handles movement and safe rotation.
 #-----------------------------------------------------------------------------
 handle_input:
@@ -15,12 +72,9 @@ handle_input:
     sw   $s3, 4($sp)
     sw   $s4, 0($sp)
 
-    la   $t8, ADDR_KBRD
-    lw   $t8, 0($t8)         # $t8 = 0xffff0000 (control del teclado)
-    lw   $t9, 0($t8)         # $t9 = 1 si hay tecla nueva
-    beq  $t9, $zero, input_done
-
-    lw   $t5, 4($t8)         # $t5 = código ASCII de la tecla
+    jal  nuc_leer_tecla
+    beq  $v0, $zero, input_done   # no hay tecla: salir
+    move $t5, $v0                 # $t5 = tecla (el resto del código usa $t5)
 
     # --- Load current piece state ---
     la   $s0, CURRENT_PIECE_TYPE
@@ -105,8 +159,15 @@ land_piece:
     
 check_q:
     li   $t0, TECLA_Q
-    bne  $t5, $t0, input_done
+    bne $t5, $t0, check_p
     jal  exit_game
+    
+check_p:
+    li   $t0, TECLA_P
+    bne  $t5, $t0, input_done
+    li   $t0, EST_PAUSA
+    la   $t1, ESTADO
+    sw   $t0, 0($t1)             # ESTADO = PAUSA
 
 input_done:
     # --- Epilogue ---
@@ -275,9 +336,9 @@ spawn_new_piece:
 
     # --- Game Over Logic ---
     jal  update_high_score       # Optional: Save high score
-    li   $t0, 1
-    la   $t1, GAME_OVER_FLAG
-    sw   $t0, 0($t1)             # GAME_OVER_FLAG = 1
+    li   $t0, EST_GAMEOVER
+    la   $t1, ESTADO
+    sw   $t0, 0($t1)             # ESTADO = GAME OVER
     j    spawn_done
 
 spawn_ok:
@@ -336,42 +397,97 @@ update_speed_exit:
     jr   $ra
 
 
-## NEW: game_over_loop
-# A separate loop that runs when the game is over. It displays the
-# game over screen and waits for the player to press 'r' to retry or 'q' to quit.
-game_over_loop:
-    # Display the "GAME OVER" screen text
-    jal draw_game_over_screen
+#-----------------------------------------------------------------------------
+# nuc_estado_gameover: muestra la pantalla de fin. R reinicia, Q sale.
+#-----------------------------------------------------------------------------
+nuc_estado_gameover:
+    addi $sp, $sp, -4
+    sw   $ra, 0($sp)
 
-    # Check for keyboard input
-    la   $t8, ADDR_KBRD
-    lw   $t8, 0($t8)
-    lw   $t9, 0($t8)
-    beq  $t9, $zero, wait_for_input # If no key pressed, wait
+    jal  draw_game_over_screen
+    jal  nuc_leer_tecla          # $v0 = tecla o 0
+    li   $t0, TECLA_R
+    beq  $v0, $t0, nuc_go_reiniciar
+    li   $t0, TECLA_Q
+    beq  $v0, $t0, exit_game     # exit_game termina el programa
+    j    nuc_go_fin
 
-    lw   $t5, 4($t8) # Read the key press
+nuc_go_reiniciar:
+    jal  restart_game            # deja ESTADO = JUGANDO
 
-    # Check for 'r' (retry)
-    li   $t0, TECLA_R # ASCII for 'r'
-    beq  $t5, $t0, do_restart
+nuc_go_fin:
+    lw   $ra, 0($sp)
+    addi $sp, $sp, 4
+    jr   $ra
 
-    # Check for 'q' (quit)
-    li   $t0, TECLA_Q # ASCII for 'q'
-    beq  $t5, $t0, exit_game
+#-----------------------------------------------------------------------------
+# nuc_estado_pausa: el juego queda congelado. P reanuda, Q sale.
+#-----------------------------------------------------------------------------
+nuc_estado_pausa:
+    addi $sp, $sp, -4
+    sw   $ra, 0($sp)
 
-    # If another key is pressed, just keep looping
-    j    wait_for_input
+    jal  nuc_leer_tecla
+    li   $t0, TECLA_P
+    beq  $v0, $t0, nuc_pa_reanudar
+    li   $t0, TECLA_Q
+    beq  $v0, $t0, exit_game
+    j    nuc_pa_fin
 
-wait_for_input:
-    # --- NEW: Add small delay to avoid CPU spinning ---
-    li   $v0, 32
-    li   $a0, 80
-    syscall
-    j    game_over_loop
+nuc_pa_reanudar:
+    li   $t0, EST_JUGANDO
+    la   $t1, ESTADO
+    sw   $t0, 0($t1)             # ESTADO = JUGANDO
+    li   $v0, 30                 # reiniciar el reloj de la gravedad
+    syscall                      # para que la pieza no caiga de golpe
+    la   $t0, LAST_GRAVITY_TIME
+    sw   $a0, 0($t0)
 
-do_restart:
-    jal restart_game
-    j game_loop # Jump back to the main game loop to start again
+nuc_pa_fin:
+    lw   $ra, 0($sp)
+    addi $sp, $sp, 4
+    jr   $ra
+
+#-----------------------------------------------------------------------------
+# nuc_estado_menu: espera una tecla para empezar. Q sale.
+# (Jorge dibujará aquí la pantalla de menú)
+#-----------------------------------------------------------------------------
+nuc_estado_menu:
+    addi $sp, $sp, -4
+    sw   $ra, 0($sp)
+
+    jal  draw_scene
+    jal  nuc_leer_tecla
+    beq  $v0, $zero, nuc_me_fin  # sin tecla: seguir esperando
+    li   $t0, TECLA_Q
+    beq  $v0, $t0, exit_game
+    jal  restart_game            # cualquier otra tecla: partida nueva
+
+nuc_me_fin:
+    lw   $ra, 0($sp)
+    addi $sp, $sp, 4
+    jr   $ra
+
+#-----------------------------------------------------------------------------
+# nuc_estado_victoria: ganaste. R juega de nuevo, Q sale.
+# (Jorge dibujará aquí la pantalla de victoria)
+#-----------------------------------------------------------------------------
+nuc_estado_victoria:
+    addi $sp, $sp, -4
+    sw   $ra, 0($sp)
+
+    jal  nuc_leer_tecla
+    li   $t0, TECLA_R
+    beq  $v0, $t0, nuc_vi_reiniciar
+    li   $t0, TECLA_Q
+    beq  $v0, $t0, exit_game
+    j    nuc_vi_fin
+nuc_vi_reiniciar:
+    jal  restart_game
+nuc_vi_fin:
+    lw   $ra, 0($sp)
+    addi $sp, $sp, 4
+    jr   $ra
 
 ## NEW: restart_game
 # Resets all game state variables to their initial values for a new game.
@@ -398,9 +514,9 @@ restart_game:
     la   $t0, LAST_GRAVITY_TIME
     sw   $a0, 0($t0)
 
-    # Reset the game over flag
-    li   $t0, 0
-    la   $t1, GAME_OVER_FLAG
+    # Volver al estado JUGANDO
+    li   $t0, EST_JUGANDO
+    la   $t1, ESTADO
     sw   $t0, 0($t1)
 
     # Clear the playfield
