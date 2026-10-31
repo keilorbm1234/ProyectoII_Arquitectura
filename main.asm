@@ -51,49 +51,22 @@ main:
 
 ## MODIFIED: game_loop
 game_loop:
-    ## NEW: Check if the game is over. If so, branch to the game over loop.
-    la   $t0, GAME_OVER_FLAG
-    lw   $t0, 0($t0)
-    bne  $t0, $zero, game_over_loop
+    la   $t0, ESTADO
+    lw   $t0, 0($t0)              # $t0 = estado actual
 
-    # Erase the screen by redrawing the entire static scene
-    jal  draw_scene
+    li   $t1, EST_JUGANDO
+    beq  $t0, $t1, gl_jugando
+    li   $t1, EST_GAMEOVER
+    beq  $t0, $t1, game_over_loop # temporal: lo cambiamos en el 4.4
+    j    gl_fin                   # menú, pausa y victoria: aún no hacen nada
 
-    # Display the current score and the high score
-    jal  draw_score
-    jal  draw_high_score      ## NEW: Call the high score drawing function
+gl_jugando:
+    jal  nuc_estado_jugando
 
-    # --- Draw the current tetromino ---
-    # (The rest of the original drawing logic remains the same)
-    la   $s0, CURRENT_PIECE_TYPE
-    lw   $s0, 0($s0)
-    la   $s1, CURRENT_PIECE_ORIENTATION
-        lw   $s1, 0($s1)
-
-    sll  $t0, $s0, 2
-    la   $t1, MASTER_SHAPE_TABLE
-    add  $t1, $t1, $t0
-    lw   $t1, 0($t1)
-    sll  $t0, $s1, 2
-    add  $a0, $t1, $t0
-    lw   $a0, 0($a0)
-
-    la   $t0, CURRENT_PIECE_X
-    lw   $a1, 0($t0)
-    la   $t0, CURRENT_PIECE_Y
-    lw   $a2, 0($t0)
-
-    jal  draw_tetromino
-
-    # Handle player input and gravity
-    jal  handle_input
-    jal  apply_gravity
-
-    # Frame delay
-    li   $v0, 32
+gl_fin:
+    li   $v0, 32                  # esperar 100 ms
     li   $a0, 100
     syscall
-
     b    game_loop
 
 # 3. procedimientos al final

@@ -19,6 +19,47 @@ nuc_lt_nada:
     jr   $ra
 
 #-----------------------------------------------------------------------------
+# nuc_estado_jugando: un ciclo del juego (dibujar, leer teclado, gravedad).
+#-----------------------------------------------------------------------------
+nuc_estado_jugando:
+    addi $sp, $sp, -12
+    sw   $ra, 8($sp)
+    sw   $s0, 4($sp)
+    sw   $s1, 0($sp)
+
+    jal  draw_scene              # fondo y bloques fijados
+    jal  draw_score
+    jal  draw_high_score
+
+    # --- Dibujar la pieza actual ---
+    la   $s0, CURRENT_PIECE_TYPE
+    lw   $s0, 0($s0)
+    la   $s1, CURRENT_PIECE_ORIENTATION
+    lw   $s1, 0($s1)
+
+    sll  $t0, $s0, 2
+    la   $t1, MASTER_SHAPE_TABLE
+    add  $t1, $t1, $t0
+    lw   $t1, 0($t1)
+    sll  $t0, $s1, 2
+    add  $a0, $t1, $t0
+    lw   $a0, 0($a0)             # $a0 = forma de la pieza
+
+    la   $t0, CURRENT_PIECE_X
+    lw   $a1, 0($t0)
+    la   $t0, CURRENT_PIECE_Y
+    lw   $a2, 0($t0)
+    jal  draw_tetromino
+
+    jal  handle_input
+    jal  apply_gravity
+
+    lw   $s1, 0($sp)
+    lw   $s0, 4($sp)
+    lw   $ra, 8($sp)
+    addi $sp, $sp, 12
+    jr   $ra
+#-----------------------------------------------------------------------------
 # handle_input: Handles movement and safe rotation.
 #-----------------------------------------------------------------------------
 handle_input:
@@ -288,9 +329,9 @@ spawn_new_piece:
 
     # --- Game Over Logic ---
     jal  update_high_score       # Optional: Save high score
-    li   $t0, 1
-    la   $t1, GAME_OVER_FLAG
-    sw   $t0, 0($t1)             # GAME_OVER_FLAG = 1
+    li   $t0, EST_GAMEOVER
+    la   $t1, ESTADO
+    sw   $t0, 0($t1)             # ESTADO = GAME OVER
     j    spawn_done
 
 spawn_ok:
@@ -411,9 +452,9 @@ restart_game:
     la   $t0, LAST_GRAVITY_TIME
     sw   $a0, 0($t0)
 
-    # Reset the game over flag
-    li   $t0, 0
-    la   $t1, GAME_OVER_FLAG
+    # Volver al estado JUGANDO
+    li   $t0, EST_JUGANDO
+    la   $t1, ESTADO
     sw   $t0, 0($t1)
 
     # Clear the playfield
