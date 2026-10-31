@@ -468,6 +468,27 @@ nuc_me_fin:
     addi $sp, $sp, 4
     jr   $ra
 
+#-----------------------------------------------------------------------------
+# nuc_estado_victoria: ganaste. R juega de nuevo, Q sale.
+# (Jorge dibujará aquí la pantalla de victoria)
+#-----------------------------------------------------------------------------
+nuc_estado_victoria:
+    addi $sp, $sp, -4
+    sw   $ra, 0($sp)
+
+    jal  nuc_leer_tecla
+    li   $t0, TECLA_R
+    beq  $v0, $t0, nuc_vi_reiniciar
+    li   $t0, TECLA_Q
+    beq  $v0, $t0, exit_game
+    j    nuc_vi_fin
+nuc_vi_reiniciar:
+    jal  restart_game
+nuc_vi_fin:
+    lw   $ra, 0($sp)
+    addi $sp, $sp, 4
+    jr   $ra
+
 ## NEW: restart_game
 # Resets all game state variables to their initial values for a new game.
 restart_game:

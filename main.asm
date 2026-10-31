@@ -34,6 +34,8 @@ game_loop:
     beq  $t0, $t1, gl_pausa
     li   $t1, EST_GAMEOVER
     beq $t0, $t1, gl_gameover
+    li   $t1, EST_VICTORIA
+    beq  $t0, $t1, gl_victoria
     jal  nuc_estado_menu          # si no es ninguno: MENÚ
     j    gl_fin
 
@@ -47,6 +49,10 @@ gl_pausa:
 
 gl_gameover:
     jal  nuc_estado_gameover
+    j    gl_fin
+
+gl_victoria:
+    jal  nuc_estado_victoria
 
 gl_fin:
     li   $v0, 32                  # esperar 100 ms
