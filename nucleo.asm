@@ -390,42 +390,28 @@ update_speed_exit:
     jr   $ra
 
 
-## NEW: game_over_loop
-# A separate loop that runs when the game is over. It displays the
-# game over screen and waits for the player to press 'r' to retry or 'q' to quit.
-game_over_loop:
-    # Display the "GAME OVER" screen text
-    jal draw_game_over_screen
+#-----------------------------------------------------------------------------
+# nuc_estado_gameover: muestra la pantalla de fin. R reinicia, Q sale.
+#-----------------------------------------------------------------------------
+nuc_estado_gameover:
+    addi $sp, $sp, -4
+    sw   $ra, 0($sp)
 
-    # Check for keyboard input
-    la   $t8, ADDR_KBRD
-    lw   $t8, 0($t8)
-    lw   $t9, 0($t8)
-    beq  $t9, $zero, wait_for_input # If no key pressed, wait
+    jal  draw_game_over_screen
+    jal  nuc_leer_tecla          # $v0 = tecla o 0
+    li   $t0, TECLA_R
+    beq  $v0, $t0, nuc_go_reiniciar
+    li   $t0, TECLA_Q
+    beq  $v0, $t0, exit_game     # exit_game termina el programa
+    j    nuc_go_fin
 
-    lw   $t5, 4($t8) # Read the key press
+nuc_go_reiniciar:
+    jal  restart_game            # deja ESTADO = JUGANDO
 
-    # Check for 'r' (retry)
-    li   $t0, TECLA_R # ASCII for 'r'
-    beq  $t5, $t0, do_restart
-
-    # Check for 'q' (quit)
-    li   $t0, TECLA_Q # ASCII for 'q'
-    beq  $t5, $t0, exit_game
-
-    # If another key is pressed, just keep looping
-    j    wait_for_input
-
-wait_for_input:
-    # --- NEW: Add small delay to avoid CPU spinning ---
-    li   $v0, 32
-    li   $a0, 80
-    syscall
-    j    game_over_loop
-
-do_restart:
-    jal restart_game
-    j game_loop # Jump back to the main game loop to start again
+nuc_go_fin:
+    lw   $ra, 0($sp)
+    addi $sp, $sp, 4
+    jr   $ra
 
 ## NEW: restart_game
 # Resets all game state variables to their initial values for a new game.

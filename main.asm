@@ -23,32 +23,6 @@ main:
     # --- Spawn the first piece ---
     jal  spawn_new_piece
 
-#-----------------------------------------------------------------------------
-
-# GENERAL NOTES
-
-# 1. 0x00RRGGBB, where RR, GG, and BB are the hexadecimal values for
-#    the red, green, and blue components.
-#
-#    Black: 0x00000000 
-#    White: 0x00FFFFFF
-#    Dark Grey: 0x001c1c1c
-#    Blue: 0x000000FF 
-
-# 2. 32x32 grid of units (256 pixels / 8 pixels per unit = 32)
-
-#-----------------------------------------------------------------------------
-
-# WHAT ARE TEMPORARIES DOING
-
-# t0 - store the address of the current unit im looking at 
-# t1 - stores the current color 
-# t2 - Counter for units i need to pain
-# t3 - will store tempories (starting wall address)
-
-#-----------------------------------------------------------------------------
-
-
 ## MODIFIED: game_loop
 game_loop:
     la   $t0, ESTADO
@@ -57,11 +31,15 @@ game_loop:
     li   $t1, EST_JUGANDO
     beq  $t0, $t1, gl_jugando
     li   $t1, EST_GAMEOVER
-    beq  $t0, $t1, game_over_loop # temporal: lo cambiamos en el 4.4
+    beq $t0, $t1, gl_gameover
     j    gl_fin                   # menú, pausa y victoria: aún no hacen nada
 
 gl_jugando:
     jal  nuc_estado_jugando
+    j	gl_fin
+
+gl_gameover:
+    jal  nuc_estado_gameover
 
 gl_fin:
     li   $v0, 32                  # esperar 100 ms
