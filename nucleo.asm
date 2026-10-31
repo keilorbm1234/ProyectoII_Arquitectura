@@ -159,8 +159,15 @@ land_piece:
     
 check_q:
     li   $t0, TECLA_Q
-    bne  $t5, $t0, input_done
+    bne $t5, $t0, check_p
     jal  exit_game
+    
+check_p:
+    li   $t0, TECLA_P
+    bne  $t5, $t0, input_done
+    li   $t0, EST_PAUSA
+    la   $t1, ESTADO
+    sw   $t0, 0($t1)             # ESTADO = PAUSA
 
 input_done:
     # --- Epilogue ---
@@ -409,6 +416,34 @@ nuc_go_reiniciar:
     jal  restart_game            # deja ESTADO = JUGANDO
 
 nuc_go_fin:
+    lw   $ra, 0($sp)
+    addi $sp, $sp, 4
+    jr   $ra
+
+#-----------------------------------------------------------------------------
+# nuc_estado_pausa: el juego queda congelado. P reanuda, Q sale.
+#-----------------------------------------------------------------------------
+nuc_estado_pausa:
+    addi $sp, $sp, -4
+    sw   $ra, 0($sp)
+
+    jal  nuc_leer_tecla
+    li   $t0, TECLA_P
+    beq  $v0, $t0, nuc_pa_reanudar
+    li   $t0, TECLA_Q
+    beq  $v0, $t0, exit_game
+    j    nuc_pa_fin
+
+nuc_pa_reanudar:
+    li   $t0, EST_JUGANDO
+    la   $t1, ESTADO
+    sw   $t0, 0($t1)             # ESTADO = JUGANDO
+    li   $v0, 30                 # reiniciar el reloj de la gravedad
+    syscall                      # para que la pieza no caiga de golpe
+    la   $t0, LAST_GRAVITY_TIME
+    sw   $a0, 0($t0)
+
+nuc_pa_fin:
     lw   $ra, 0($sp)
     addi $sp, $sp, 4
     jr   $ra
