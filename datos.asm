@@ -88,7 +88,7 @@ GRAVITY_INTERVAL:  .word 1000   # Gravity happens every 1000 ms (1 second)
 
 ## NEW: Game state, high score, and UI text data
 HIGH_SCORE:     .word 0           # Persists across games
-ESTADO:         .word EST_JUGANDO   # estado actual del juego
+ESTADO:         .word EST_MENU      # el juego arranca en el menú
 
 GAMEOVER_TEXT:  .asciiz "GAME OVER"
 RETRY_TEXT:     .asciiz "RETRY (R)"

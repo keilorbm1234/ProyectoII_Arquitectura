@@ -448,6 +448,26 @@ nuc_pa_fin:
     addi $sp, $sp, 4
     jr   $ra
 
+#-----------------------------------------------------------------------------
+# nuc_estado_menu: espera una tecla para empezar. Q sale.
+# (Jorge dibujará aquí la pantalla de menú)
+#-----------------------------------------------------------------------------
+nuc_estado_menu:
+    addi $sp, $sp, -4
+    sw   $ra, 0($sp)
+
+    jal  draw_scene
+    jal  nuc_leer_tecla
+    beq  $v0, $zero, nuc_me_fin  # sin tecla: seguir esperando
+    li   $t0, TECLA_Q
+    beq  $v0, $t0, exit_game
+    jal  restart_game            # cualquier otra tecla: partida nueva
+
+nuc_me_fin:
+    lw   $ra, 0($sp)
+    addi $sp, $sp, 4
+    jr   $ra
+
 ## NEW: restart_game
 # Resets all game state variables to their initial values for a new game.
 restart_game:

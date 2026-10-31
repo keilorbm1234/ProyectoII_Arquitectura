@@ -34,7 +34,8 @@ game_loop:
     beq  $t0, $t1, gl_pausa
     li   $t1, EST_GAMEOVER
     beq $t0, $t1, gl_gameover
-    j    gl_fin                   # menú, pausa y victoria: aún no hacen nada
+    jal  nuc_estado_menu          # si no es ninguno: MENÚ
+    j    gl_fin
 
 gl_jugando:
     jal  nuc_estado_jugando
