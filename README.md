@@ -1,160 +1,160 @@
 # tetris_mips_asm
 
-A fully playable **Tetris-style** game written in **MIPS assembly** for the **MARS** simulator.
-It uses the Bitmap Display and Keyboard MMIO tools for graphics and input, includes scoring, a persistent high score (per run), speedups as you clear lines, and a game-over screen with retry. 
+Un juego **estilo Tetris** completamente funcional, escrito en **ensamblador MIPS** para el simulador **MARS**.
+Utiliza las herramientas Bitmap Display y Keyboard MMIO para los gráficos y la entrada de teclado. Incluye un sistema de puntuación, un récord que se conserva durante cada ejecución, aumentos de velocidad al eliminar líneas y una pantalla de fin de partida con opción de reintentar.
 
-## Features
+## Características
 
-- **Playfield:** 16×32 virtual grid rendered on a 32×32 tile screen (each tile = 8×8 pixels)
-- **Seven tetrominoes (I, J, L, O, S, T, Z)** with rotation tables (0–3)
-- **WASD controls** + **Q to quit**, **R to retry** on game over
-- **Soft drop** (`S`) and **safe rotation** (`W`, rotation denied if it would collide)
-- **Line clearing** with rows above shifting down
-- **Score** (1 point per cleared line) and **High Score** shown in side panel
-- **Gravity timer** that speeds up: interval decreases by 300 ms every `LINES_PER_LEVEL` lines (until `MIN_GRAVITY`)
-- **UI text & numbers** rendered via a compact 3×5 pixel font (digits + needed letters)
-
----
-
-## Controls
-
-| Key   | Action                        |
-| ----- | ----------------------------- |
-| **A** | Move left                     |
-| **D** | Move right                    |
-| **S** | Soft drop (one row)           |
-| **W** | Rotate (clockwise)            |
-| **Q** | Quit                          |
-| **R** | Retry (from Game Over screen) |
-
-> Arrow keys are **not** used; input is ASCII from MMIO.
+- **Área de juego:** cuadrícula virtual de 16×32 celdas dibujada en una pantalla de 32×32 celdas (cada celda = 8×8 píxeles)
+- **Siete tetrominós (I, J, L, O, S, T, Z)** con tablas de rotación (0–3)
+- **Controles WASD**, **Q para salir** y **R para reintentar** al terminar la partida
+- **Caída suave** (`S`) y **rotación segura** (`W`; se impide la rotación si provoca una colisión)
+- **Eliminación de líneas** con desplazamiento hacia abajo de las filas superiores
+- **Puntuación** (1 punto por línea eliminada) y **récord** visibles en el panel lateral
+- **Temporizador de gravedad** con aceleración: el intervalo disminuye 300 ms cada `LINES_PER_LEVEL` líneas (hasta llegar a `MIN_GRAVITY`)
+- **Texto y números de la interfaz** dibujados con una fuente compacta de 3×5 píxeles (dígitos y letras necesarias)
 
 ---
 
-## Requirements
+## Controles
 
-- **MARS** (MIPS Assembler and Runtime Simulator), v4.5 or newer recommended
-  (Uses MARS syscalls: **30** = current time (ms), **32** = sleep (ms), **42** = random int range.)
-- **Bitmap Display** Tool and **Keyboard & Display MMIO** Tool enabled and connected
+| Tecla | Acción                                         |
+| ----- | ---------------------------------------------- |
+| **A** | Mover a la izquierda                           |
+| **D** | Mover a la derecha                             |
+| **S** | Caída suave (una fila)                          |
+| **W** | Rotar en sentido horario                       |
+| **Q** | Salir                                          |
+| **R** | Reintentar desde la pantalla de fin de partida  |
 
----
-
-## Run Instructions (MARS)
-
-1. **Open your `.asm` file** in MARS.
-2. **Tools → Bitmap Display**
-
-   - Unit width/height: **8**
-   - Display width/height: **256 × 256**
-   - Base address: **`0x10008000`**
-   - Click **Connect to MIPS**.
-
-3. **Tools → Keyboard and Display MMIO Simulator**
-
-   - Click **Connect to MIPS**.
-
-4. **Assemble** the program (F3) and **Run** (F5).
-   You should see the board, walls, and the side panels (Next/Score/HI). Use **WASD** to play.
+> **No** se utilizan las teclas de flecha; la entrada se recibe como caracteres ASCII mediante MMIO.
 
 ---
 
-## Memory-Mapped I/O
+## Requisitos
 
-These are configured at the top of the program (you can change them if you like):
+- **MARS** (MIPS Assembler and Runtime Simulator); se recomienda la versión 4.5 o posterior.
+  (Utiliza las llamadas al sistema de MARS: **30** = tiempo actual en ms, **32** = pausa en ms, **42** = entero aleatorio dentro de un rango).
+- Herramientas **Bitmap Display** y **Keyboard & Display MMIO** habilitadas y conectadas.
+
+---
+
+## Instrucciones de ejecución (MARS)
+
+1. **Abre el archivo `.asm`** en MARS.
+2. Abre **Tools → Bitmap Display** y configura:
+
+   - Ancho y alto de cada unidad (Unit width/height): **8**.
+   - Ancho y alto de la pantalla (Display width/height): **256 × 256**.
+   - Dirección base (Base address): **`0x10008000`**.
+   - Haz clic en **Connect to MIPS**.
+
+3. Abre **Tools → Keyboard and Display MMIO Simulator**.
+
+   - Haz clic en **Connect to MIPS**.
+
+4. **Ensambla** el programa con **Assemble** (F3) y **ejecútalo** con **Run** (F5).
+   Deberías ver el tablero, las paredes y los paneles laterales (Next/Score/HI: siguiente pieza, puntuación y récord). Utiliza **WASD** para jugar.
+
+---
+
+## Entrada/salida mapeada en memoria
+
+Estas direcciones se configuran al inicio del programa y se pueden modificar:
 
 ```asm
-ADDR_DSPL: .word 0x10008000   # MARS Bitmap Display base address
-ADDR_KBRD: .word 0xffff0000   # Keyboard MMIO (status @ +0, data @ +4)
+ADDR_DSPL: .word 0x10008000   # Dirección base de Bitmap Display de MARS
+ADDR_KBRD: .word 0xffff0000   # Teclado MMIO (estado en +0, datos en +4)
 ```
 
-**Keyboard MMIO:**
+**Teclado MMIO:**
 
-- `0xFFFF0000` — status (non-zero if a key is available)
-- `0xFFFF0004` — ASCII of the last key
+- `0xFFFF0000` — estado (distinto de cero si hay una tecla disponible)
+- `0xFFFF0004` — código ASCII de la última tecla
 
 ---
 
-## Color & Screen Model
+## Modelo de color y pantalla
 
-- Color format: **`0x00RRGGBB`**
-- Screen is a **32×32 tile grid** (256×256 pixels @ 8×8 per tile)
-- Playfield occupies **16×32** tiles, offset **3** tiles from the left (walls at columns 2 and 19)
-- Side panels (Next / Score / HI) live on the right side
+- Formato de color: **`0x00RRGGBB`**.
+- La pantalla es una **cuadrícula de 32×32 celdas** (256×256 píxeles, con 8×8 píxeles por celda).
+- El área de juego ocupa **16×32** celdas y comienza a **3** celdas del borde izquierdo (paredes en las columnas 2 y 19).
+- Los paneles laterales (Next / Score / HI) se encuentran a la derecha.
 
-Key color constants (examples):
+Principales constantes de color (ejemplos):
 
 ```asm
 COLOR_BG_GRAY_LIGHT: .word 0x00606060
 COLOR_BG_GREY_DARK:  .word 0x00202020
 COLOR_BG_WALL:       .word 0x00ffee00
 COLOR_FROZEN_BLOCK:  .word 0x0022c55e
-COLOR_I:             .word 0x0000ffff  # cyan
+COLOR_I:             .word 0x0000ffff  # cian
 ...
 COLOR_TEXT_ORANGE:   .word 0x00FF8800
 ```
 
 ---
 
-## Gameplay Constants (tweakable)
+## Constantes del juego (ajustables)
 
 ```asm
-LINES_PER_LEVEL: .word 1     # lines needed to speed up (set to 5 for classic feel)
-GRAVITY_INTERVAL: .word 1000 # ms between gravity drops at start
-MIN_GRAVITY: .word 100       # fastest gravity (ms)
+LINES_PER_LEVEL: .word 1     # Líneas necesarias para acelerar (5 para un ritmo clásico)
+GRAVITY_INTERVAL: .word 1000 # Intervalo inicial entre caídas por gravedad (ms)
+MIN_GRAVITY: .word 100       # Intervalo mínimo entre caídas por gravedad (ms)
 ```
 
-**Speedup rule:** Whenever `LINES_CLEARED % LINES_PER_LEVEL == 0`,
-`GRAVITY_INTERVAL -= 300` (but never faster than `MIN_GRAVITY`).
+**Regla de aceleración:** cada vez que `LINES_CLEARED % LINES_PER_LEVEL == 0`,
+se aplica `GRAVITY_INTERVAL -= 300`, sin reducir el intervalo por debajo de `MIN_GRAVITY`.
 
 ---
 
-## Code Tour (high-level)
+## Descripción general del código
 
 - **`main`**
-  Initializes the playfield, draws the scene, sets the gravity timer, spawns the first piece, then enters `game_loop`.
+  Inicializa el área de juego, dibuja la escena, configura el temporizador de gravedad, genera la primera pieza y entra en `game_loop`.
 
 - **`game_loop`**
-  Draws the static scene + frozen blocks, draws the active tetromino, shows **Score** and **HI**, handles `handle_input` and `apply_gravity`, then sleeps briefly.
+  Dibuja la escena estática y los bloques fijados, dibuja el tetrominó activo, muestra **Score** y **HI**, ejecuta `handle_input` y `apply_gravity`, y realiza una breve pausa.
 
-- **Drawing**
+- **Dibujo**
 
-  - `draw_scene` paints background, walls, side panels, and iterates through `PLAYFIELD` to draw frozen blocks.
-  - `draw_tetromino` renders the active piece at `(CURRENT_PIECE_X, CURRENT_PIECE_Y)` using its current rotation table.
-  - `draw_digit`, `draw_string`, `draw_char` render 3×5 font glyphs for UI (score, “GAME OVER”, “RETRY (R)”, “HI”).
+  - `draw_scene` dibuja el fondo, las paredes y los paneles laterales, y recorre `PLAYFIELD` para dibujar los bloques fijados.
+  - `draw_tetromino` dibuja la pieza activa en `(CURRENT_PIECE_X, CURRENT_PIECE_Y)` mediante su tabla de rotación actual.
+  - `draw_digit`, `draw_string` y `draw_char` dibujan los caracteres de la fuente de 3×5 píxeles para la interfaz (puntuación, “GAME OVER”, “RETRY (R)”, “HI”).
 
-- **Input** (`handle_input`)
-  Reads MMIO keyboard, applies move/rotate if **no collision** at the candidate position.
+- **Entrada de teclado** (`handle_input`)
+  Lee el teclado MMIO y aplica el movimiento o la rotación si **no hay colisión** en la posición propuesta.
 
-- **Gravity** (`apply_gravity`)
-  Uses syscall 30 (time) to drop automatically every `GRAVITY_INTERVAL` ms; if blocked, calls `freeze_piece`, `check_and_clear_lines`, `spawn_new_piece`.
+- **Gravedad** (`apply_gravity`)
+  Utiliza la llamada al sistema 30 (tiempo) para hacer descender la pieza automáticamente cada `GRAVITY_INTERVAL` ms; si no puede descender, llama a `freeze_piece`, `check_and_clear_lines` y `spawn_new_piece`.
 
-- **Collision & Freezing**
+- **Colisiones y fijación de piezas**
 
-  - `check_collision` bounds-checks (walls/floor) and tests against `PLAYFIELD`.
-  - `freeze_piece` writes the active tetromino’s blocks into `PLAYFIELD`.
+  - `check_collision` comprueba los límites (paredes y suelo) y las colisiones con los bloques de `PLAYFIELD`.
+  - `freeze_piece` guarda los bloques del tetrominó activo en `PLAYFIELD`.
 
-- **Line Clearing** (`check_and_clear_lines`)
-  Scans rows from bottom → top, clears full lines, calls `shift_rows_down`, increments `SCORE` and `LINES_CLEARED`, and updates speed with `update_speed`.
-  Row 0 is handled specially by `clear_top_row`.
+- **Eliminación de líneas** (`check_and_clear_lines`)
+  Recorre las filas de abajo hacia arriba, elimina las líneas completas, llama a `shift_rows_down`, incrementa `SCORE` y `LINES_CLEARED`, y actualiza la velocidad mediante `update_speed`.
+  La fila 0 recibe un tratamiento especial mediante `clear_top_row`.
 
-- **High Score & Game Over**
+- **Récord y fin de partida**
 
-  - `update_high_score` compares current `SCORE` vs `HIGH_SCORE`.
-  - `spawn_new_piece` checks for immediate collision (blocked spawn ⇒ **Game Over**).
-  - `game_over_loop` draws the **GAME / OVER / RETRY (R)** screen; waits for **R** (restart) or **Q** (quit).
-  - `restart_game` resets all state and clears the playfield.
+  - `update_high_score` compara la puntuación actual (`SCORE`) con `HIGH_SCORE`.
+  - `spawn_new_piece` comprueba si hay una colisión inmediata (si la pieza no puede aparecer, la partida termina).
+  - `game_over_loop` dibuja la pantalla **GAME / OVER / RETRY (R)** y espera a que se pulse **R** (reiniciar) o **Q** (salir).
+  - `restart_game` restablece el estado del juego y limpia el área de juego.
 
 ---
 
-## Data Tables
+## Tablas de datos
 
-- **Rotation tables:** `ROTATIONS_I`, `ROTATIONS_J`, … each points to 4 shape definitions (O repeats).
-- **Shapes:** `SHAPE_*_*` store 4 block (x,y) offsets for each rotation.
-- **Colors:** `ALL_COLORS_TABLE` maps piece type → piece color.
-- **Playfield:** `PLAYFIELD` is a **512-word** buffer (`16 × 32`, `.space 2048` bytes).
-- **Fonts:** `FONT_TABLE` (digits 0–9) and individual letter glyphs (A,E,G,H,I,M,O,R,T,V,Y, parentheses, space).
+- **Tablas de rotación:** `ROTATIONS_I`, `ROTATIONS_J`, …; cada una apunta a 4 definiciones de forma (la pieza O repite la misma forma).
+- **Formas:** `SHAPE_*_*` almacena las posiciones relativas (x, y) de los 4 bloques para cada rotación.
+- **Colores:** `ALL_COLORS_TABLE` asocia cada tipo de pieza con su color.
+- **Área de juego:** `PLAYFIELD` es un búfer de **512 palabras** (`16 × 32`, `.space 2048` bytes).
+- **Fuentes:** `FONT_TABLE` contiene los dígitos del 0 al 9; también hay caracteres individuales para las letras A, E, G, H, I, M, O, R, T, V, Y, los paréntesis y el espacio.
 
-## Acknowledgments
+## Agradecimientos
 
-- Runs on the excellent **MARS** simulator.
-- Inspired by classic Tetris mechanics; this educational version focuses on clean MIPS control flow, MMIO, and data-driven rendering.
+- Se ejecuta en el excelente simulador **MARS**.
+- Inspirado en la mecánica clásica de Tetris; esta versión educativa se centra en un flujo de control claro en MIPS, el uso de MMIO y el dibujo a partir de tablas de datos.

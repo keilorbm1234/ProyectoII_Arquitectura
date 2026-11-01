@@ -1,0 +1,41 @@
+Registro: 2026-10-31 (America/Guatemala).
+Simulador: MARS 4.5 local, Java 8; delayed branching desactivado.
+Rama: andrey/logica-tablero-10x20.
+Alcance: suites aisladas de logica/piezas y comprobación cruzada de draw_scene.
+Archivos de producción de Keilor y Jorge: sin cambios respecto a HEAD al verificar.
+Pruebas propias: etapa1 42 casos, etapa2 104, etapa3 89; total 235 casos, 37911 comprobaciones.
+Prueba cruzada: XJ01 y XJ02 fallidas; pendientes para Jorge. No son correcciones aplicadas.
+El código de salida 1 del comando conjunto se debe a las comprobaciones de gráficos.
+Un resultado correcto de lógica no implica una partida integrada correcta.
+Capturas: pendientes. Commits de implementación/documentación: pendientes.
+Comando ejecutado desde la raíz:
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\andrey\pruebas\ejecutar.ps1 -MarsJar <Mars4_5.jar local> -Java <java.exe local> -CruzarGraficos
+
+Salida real:
+etapa1.asm: PASS assertions: 4580
+etapa2.asm: PASS assertions: 12311
+etapa3.asm: PASS assertions: 21020
+cruce_graficos.asm:
+XJ01 saved-register preservation: FAIL
+observed s0 (expected 1000): 268503184
+observed s1 (expected 1001): 0
+observed s2 (expected 1002): 512
+XJ02 ignores logical index 200: FAIL
+pixel expected background: 6316128
+pixel observed: 2278750
+WARNING: Graphics contract checks failed. Record the evidence and coordinate with Jorge.
+
+Base Git y huellas SHA256 de los archivos comprobados:
+Base Git: cc9cc2f0d53e6379260deae2b239476cbf9fd264
+logica.asm: 8521E847E6892A02306CCCAD4E81B3E162CD871AD1205E9CAD36FB1932BCBFE6
+piezas.asm: 71D01CCE4CE02FD19F1F2F4AFE4074CEAD83731701EC784FB89E90C3853ECF5C
+graficos.asm: FE9ECB0532F4850EFCB98355CC5EB177C992053E0FEA7813A9EB5EE98115D453
+datos.asm: 2B57F891394791B0A7D9AF5D279BECD85EEE956B0D8B7C092D4C072945CDF7B2
+fuente.asm: 144FA1B16C9E0A74A9A42258F828D6DA17F9689845EBB25EF36558D15F1E16BD
+andrey\pruebas\datos_prueba.asm: FD08551AC564635375E6E129C4F9671CC764DADD5028F591E488C58CA628F497
+andrey\pruebas\aserciones.asm: 6CE3BE09E0BC73B4E8AF25BBE8C2518E65A1B31A61C0DFBF4D1763DBBB24101C
+andrey\pruebas\etapa1.asm: C6A23DA1A3EA3B2804652E387A0657426039413C188789DE71F98871BF172D4B
+andrey\pruebas\etapa2.asm: 5CAE236022BEBBA32C403F7E36BD66B6C49D1E6B455E6AAEEB97CD236B15AF7A
+andrey\pruebas\etapa3.asm: D7964A7C732CA8C01C59A889261FE6FC2E19953299BAF9154C5867816D13F4D2
+andrey\pruebas\cruce_graficos.asm: 786A7567325F07BE91590DDD0378EA0A4E3102C6D80FE8BAB9A00A555EDBCD4F
+andrey\pruebas\ejecutar.ps1: F65A52DF332236C9ECC2C03DE6A3B6822F18F25A11C4D66D90D0B7FBB209C483
