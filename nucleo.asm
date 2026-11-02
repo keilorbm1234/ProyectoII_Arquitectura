@@ -301,7 +301,9 @@ spawn_new_piece:
     sw   $t2, 0($t3)
 
     # --- Reset position and orientation ---
-    li   $t0, 10                      # Starting X position
+    li   $t0, ANCHO                   # Starting X position: centrada (ANCHO / 2 - 2)
+    srl  $t0, $t0, 1
+    addi $t0, $t0, -2
     la   $t1, CURRENT_PIECE_X
     sw   $t0, 0($t1)
 
@@ -427,6 +429,7 @@ nuc_estado_pausa:
     addi $sp, $sp, -4
     sw   $ra, 0($sp)
 
+    jal  gfx_pantalla_pausa
     jal  nuc_leer_tecla
     li   $t0, TECLA_P
     beq  $v0, $t0, nuc_pa_reanudar
@@ -456,7 +459,7 @@ nuc_estado_menu:
     addi $sp, $sp, -4
     sw   $ra, 0($sp)
 
-    jal  draw_scene
+    jal  gfx_pantalla_menu
     jal  nuc_leer_tecla
     beq  $v0, $zero, nuc_me_fin  # sin tecla: seguir esperando
     li   $t0, TECLA_Q
@@ -476,6 +479,7 @@ nuc_estado_victoria:
     addi $sp, $sp, -4
     sw   $ra, 0($sp)
 
+    jal  gfx_pantalla_victoria
     jal  nuc_leer_tecla
     li   $t0, TECLA_R
     beq  $v0, $t0, nuc_vi_reiniciar

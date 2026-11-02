@@ -11,7 +11,7 @@ initialize_playfield:
     sw   $s0, 0($sp)
 
     la   $s0, PLAYFIELD      # $s0 = starting address of the playfield array
-    li   $t0, 512            # $t0 = total number of cells to clear (16 * 32)
+    li   $t0, CELDAS          # $t0 = total number of cells to clear (ANCHO * ALTO)
     li   $t1, 0              # The value to store (0 for empty)
 
 init_loop:
@@ -56,21 +56,21 @@ collision_check_loop:
     add  $s1, $a2, $t4         # abs_y = piece_y + rel_y
 
     # --- CHECK 1: Wall Collision ---
-    # Check if abs_x is out of bounds ( < 0 or >= 16)
+    # Check if abs_x is out of bounds ( < 0 or >= ANCHO)
     blt  $s0, $zero, collision_found # if (abs_x < 0) -> collision
-    li   $t0, 16
-    bge  $s0, $t0, collision_found   # if (abs_x >= 16) -> collision
+    li   $t0, ANCHO
+    bge  $s0, $t0, collision_found   # if (abs_x >= ANCHO) -> collision
     
     # --- CHECK 2: Floor Collision ---
-    # Check if abs_y is out of bounds ( >= 31)
-    li   $t0, 31
-    bge  $s1, $t0, collision_found   # if (abs_y >= 31) -> collision
+    # Check if abs_y is out of bounds ( >= ALTO)
+    li   $t0, ALTO
+    bge  $s1, $t0, collision_found   # if (abs_y >= ALTO) -> collision
     
     # --- CHECK 3: Playfield Collision ---
-    # Calculate the index in the PLAYFIELD array: index = y * 16 + x
-    li   $s2, 16
-    mul  $s2, $s1, $s2         # y * 16
-    add  $s2, $s2, $s0         # (y * 16) + x
+    # Calculate the index in the PLAYFIELD array: index = y * ANCHO + x
+    li   $s2, ANCHO
+    mul  $s2, $s1, $s2         # y * ANCHO
+    add  $s2, $s2, $s0         # (y * ANCHO) + x
     sll  $s2, $s2, 2           # Convert from word index to byte offset
     
     la   $s3, PLAYFIELD
@@ -127,8 +127,8 @@ freeze_loop:
     add  $s0, $a1, $t3         # abs_x = piece_x + rel_x
     add  $s1, $a2, $t4         # abs_y = piece_y + rel_y
 
-    # Calculate the index in the PLAYFIELD array: index = y * 16 + x
-    li   $s2, 16
+    # Calculate the index in the PLAYFIELD array: index = y * ANCHO + x
+    li   $s2, ANCHO
     mul  $s2, $s1, $s2
     add  $s2, $s2, $s0
     sll  $s2, $s2, 2
@@ -174,9 +174,9 @@ shift_inner_loop: # Loop through each column in the row
     # Calculate address of the cell ABOVE: PLAYFIELD[y-1][x]
     move $t0, $s0            # y
     addi $t0, $t0, -1        # y - 1
-    li   $t1, 16
+    li   $t1, ANCHO
     mul  $t0, $t0, $t1
-    add  $t0, $t0, $s1       # index = (y-1) * 16 + x
+    add  $t0, $t0, $s1       # index = (y-1) * ANCHO + x
     sll  $t0, $t0, 2
     la   $t2, PLAYFIELD
     add  $t2, $t2, $t0       # Address of PLAYFIELD[y-1][x]
@@ -184,9 +184,9 @@ shift_inner_loop: # Loop through each column in the row
 
     # Calculate address of the CURRENT cell: PLAYFIELD[y][x]
     move $t0, $s0
-    li   $t1, 16
+    li   $t1, ANCHO
     mul  $t0, $t0, $t1
-    add  $t0, $t0, $s1       # index = y * 16 + x
+    add  $t0, $t0, $s1       # index = y * ANCHO + x
     sll  $t0, $t0, 2
     la   $t2, PLAYFIELD
     add  $t2, $t2, $t0       # Address of PLAYFIELD[y][x]
@@ -195,7 +195,7 @@ shift_inner_loop: # Loop through each column in the row
     sw   $t3, 0($t2)
 
     addi $s1, $s1, 1
-    blt  $s1, 16, shift_inner_loop # Continue until row is copied
+    blt  $s1, ANCHO, shift_inner_loop # Continue until row is copied
 
     addi $s0, $s0, -1
     bgt  $s0, $zero, shift_outer_loop # Continue until all rows above are shifted
@@ -206,15 +206,15 @@ clear_row0_loop:
     li   $t0, 0              # value = 0
     # address of PLAYFIELD[0][x]
     move $t2, $zero          # y = 0
-    li   $t3, 16
-    mul  $t2, $t2, $t3       # 0 * 16
+    li   $t3, ANCHO
+    mul  $t2, $t2, $t3       # 0 * ANCHO
     add  $t2, $t2, $s1       # x
     sll  $t2, $t2, 2
     la   $t3, PLAYFIELD
     add  $t3, $t3, $t2
     sw   $t0, 0($t3)
     addi $s1, $s1, 1
-    blt  $s1, 16, clear_row0_loop
+    blt  $s1, ANCHO, clear_row0_loop
 
     # --- Epilogue: Restore registers ---
     lw   $s2, 0($sp)
@@ -233,7 +233,8 @@ check_and_clear_lines:
     sw   $s1, 4($sp)
     sw   $t0, 0($sp)
 
-    li   $s0, 30             # Start scanning from the second to last row (y=30)
+    li   $s0, ALTO           # Empezar por la ultima fila (y = ALTO - 1)
+    addi $s0, $s0, -1
 
 check_row_loop:
     bge  $s0, $zero, continue_check_row_loop # Ensure we don't check negative rows
@@ -245,7 +246,7 @@ continue_check_row_loop:
 
 check_col_loop:
     move $t1, $s0
-    li   $t2, 16
+    li   $t2, ANCHO
     mul  $t1, $t1, $t2
     add  $t1, $t1, $s1
     sll  $t1, $t1, 2
@@ -254,7 +255,7 @@ check_col_loop:
     lw   $t3, 0($t2)
     beq  $t3, $zero, line_not_full
     addi $s1, $s1, 1
-    blt  $s1, 16, check_col_loop
+    blt  $s1, ANCHO, check_col_loop
 
 line_is_full:
     # --- Add point to score ---
@@ -315,14 +316,14 @@ new_high_score:
 # Manually clears the top row (y=0) of the playfield. This is a special
 # case because there are no rows above it to shift down.
 clear_top_row:
-    la   $s0, PLAYFIELD  # $s0 = starting address of the playfield
-    li   $t0, 16         # $t0 = 16 cells to clear
+    la   $t2, PLAYFIELD  # $t2 = starting address of the playfield (temporal: no pisa $s0)
+    li   $t0, ANCHO      # $t0 = ANCHO cells to clear
     li   $t1, 0          # The value to store (0 for empty)
 
 clear_top_row_loop:
-    sw   $t1, 0($s0)     # Store 0 in the current cell
-    addi $s0, $s0, 4     # Move to the next word in the array
+    sw   $t1, 0($t2)     # Store 0 in the current cell
+    addi $t2, $t2, 4     # Move to the next word in the array
     addi $t0, $t0, -1    # Decrement counter
-    bne  $t0, $zero, clear_top_row_loop # Loop until all 16 cells are cleared
+    bne  $t0, $zero, clear_top_row_loop # Loop until all ANCHO cells are cleared
 
-    jr   $ra  
+    jr   $ra
