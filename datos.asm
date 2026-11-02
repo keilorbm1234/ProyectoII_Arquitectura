@@ -100,10 +100,10 @@ HI_TEXT:        .asciiz "HI"
 # An array of 512 words (16x32) to represent the game board.
 # 0 = empty, 1 = occupied by a frozen piece.
 PLAYFIELD:
-    .space 2048  # 16 * 32 = 512 words. 512 * 4 bytes/word = 2048 bytes.
+    .space TABLERO_BYTES # 16 * 32 = 512 words. 512 * 4 bytes/word = 2048 bytes.
 
 GAME_TEXT:        .asciiz "GAME"
 OVER_TEXT:        .asciiz "OVER" 
 RETRY_ONLY_TEXT:  .asciiz "RETRY"
-R_PARENS_TEXT:    .asciiz ")R("
+R_PARENS_TEXT:    .asciiz "(R)"
 

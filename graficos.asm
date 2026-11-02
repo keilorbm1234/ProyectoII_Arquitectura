@@ -1,670 +1,687 @@
 # graficos.asm - Jorge
 # Tablero, HUD, vista previa y pantallas. Prefijo gfx_
+#
+# Requiere (ya incluidos antes en main.asm): macros.asm, datos.asm,
+# piezas.asm y fuente.asm.
+#
+# DISEÑO DE LA PANTALLA (32 x 32 celdas, cada una de 8x8 pixeles)
+#
+#      x: 0 1 .............. 12 13 14 ............... 30 31
+#  y=0   +----------------------------------------------+
+#        |  ENCABEZADO rojo:  "PTS" + puntaje            |   filas 0-4
+#        |                    "HI"  + record            |   filas 6-10
+#  y=11  | |      | TABLERO 10x20 |      | SIGUIENTE     |   verde, filas 11-18
+#        | |      | (x=2..11)     |      |  (vista previa)|
+#  y=20  | |      |               |      | NIVEL         |   verde, filas 20-31
+#        | |      |               |      |  "NIV" + n    |
+#  y=31  | +------ piso ---------+                       |
+#        +----------------------------------------------+
+#   Pared izquierda en x=1, pared derecha en x=12, piso en y=31.
+#   Todo sale de las constantes .eqv de abajo y de ANCHO / ALTO.
+
+# ---------- Constantes de diseño ----------
+.eqv GFX_TABLERO_X      2     # columna de pantalla de la celda (0,0) del tablero
+.eqv GFX_TABLERO_Y      11    # fila de pantalla de la celda (0,0) del tablero
+                              # (pared izq = TABLERO_X-1, pared der = TABLERO_X+ANCHO,
+                              #  piso = TABLERO_Y+ALTO: se calculan en el codigo)
+
+.eqv GFX_ETIQ_X         2     # x de las etiquetas "PTS" y "HI"
+.eqv GFX_PTS_Y          0     # fila del puntaje
+.eqv GFX_HI_Y           6     # fila del record
+
+.eqv GFX_PANEL_X        14    # primera columna del panel derecho
+.eqv GFX_PANEL_ANCHO    17    # ancho del panel derecho (columnas 14..30)
+.eqv GFX_SIG_Y0         11    # zona "siguiente": filas 11..18
+.eqv GFX_SIG_Y1         19    #   (limite exclusivo)
+.eqv GFX_SIG_X          20    # esquina de la vista previa (caja de 4 de ancho)
+.eqv GFX_SIG_Y          14    #   (las piezas ocupan 2 filas)
+.eqv GFX_NIV_Y0         20    # zona "nivel": filas 20..31
+.eqv GFX_NIV_Y1         32    #   (limite exclusivo)
+.eqv GFX_NIV_ETIQ_Y     21    # fila de la etiqueta "NIV"
+.eqv GFX_NIV_NUM_Y      27    # fila del numero de nivel
+
+.eqv GFX_MSJ_Y          8     # primera linea de los mensajes (Game Over, pausa...)
+.eqv GFX_MENU_Y         1     # primera linea del menu
+
+# ---------- Constantes de texto y pantalla ----------
+.eqv GFX_CHAR_PASO      4     # ancho de una letra (3) + 1 de separacion
+.eqv GFX_LINEA          6     # alto de una linea de texto (5) + 1 de separacion
+.eqv GFX_GLIFO_ALTO     5     # filas de un glifo
+.eqv GFX_GLIFO_COL0     2     # columna inicial al recorrer un glifo (3 columnas: 2,1,0)
+.eqv GFX_BLOQUES        4     # celdas que forman una pieza
+.eqv GFX_PANT_CELDAS    1024  # 32 * 32 celdas de la pantalla
+
 .text
 
-#-----------------------------------------------------------------------------
-# draw_scene: Draws the static board AND all frozen pieces from the playfield.
-#-----------------------------------------------------------------------------
-draw_scene:
-    # --- Function Setup: Load all colors ---
-    # (This part is the same as before)
-    la   $t0, ADDR_DSPL
-    lw   $t0, 0($t0)
-    la   $t1, COLOR_BLACK
-    lw   $t1, 0($t1)
-    la   $t2, COLOR_BG_WALL
-    lw   $t2, 0($t2)
-    la   $t3, COLOR_BG_GREY_DARK
-    lw   $t3, 0($t3)
-    la   $t4, COLOR_BG_GRAY_LIGHT
-    lw   $t4, 0($t4)
-    la   $t5, COLOR_PANEL_NEXT
-    lw   $t5, 0($t5)
-    la   $t6, COLOR_PANEL_SCORE
-    lw   $t6, 0($t6)
+# ============================================================
+# BASE DE DIBUJO
+# ============================================================
 
-    # --- Draw the static background, walls, and panels ---
-    # (This nested loop is the same as before)
-    li   $s0, 0
-scene_outer_loop:
-    li   $s1, 0
-scene_inner_loop:
-    blt  $s1, 2, draw_black
-    beq  $s1, 2, draw_wall_color
-    blt  $s1, 19, handle_play_area
-    beq  $s1, 19, draw_wall_color
-    beq  $s1, 20, draw_black
-    blt  $s1, 31, handle_side_panel
-    j    draw_black
-handle_play_area:
-    beq  $s0, 31, draw_wall_color
-    add  $t7, $s0, $s1
-    andi $t7, $t7, 1
-    beq  $t7, $zero, draw_dark_grey
-    j    draw_light_grey
-handle_side_panel:
-    blt  $s0, 20, draw_green_panel
-    blt  $s0, 22, draw_black
-    j    draw_red_panel
-draw_black:
+# ------------------------------------------------------------
+# gfx_limpiar_pantalla
+# Pinta toda la pantalla de negro.
+# Argumentos: ninguno
+# Retorno: ninguno
+# Preserva: todo salvo $t0-$t2 (hoja)
+# ------------------------------------------------------------
+.globl gfx_limpiar_pantalla
+gfx_limpiar_pantalla:
+    cargar_global($t1, COLOR_BLACK)
+    li   $t0, GFX_BASE
+    li   $t2, GFX_PANT_CELDAS
+gfx_lp_loop:
     sw   $t1, 0($t0)
-    j    scene_continue
-draw_wall_color:
-    sw   $t2, 0($t0)
-    j    scene_continue
-draw_dark_grey:
-    sw   $t3, 0($t0)
-    j    scene_continue
-draw_light_grey:
-    sw   $t4, 0($t0)
-    j    scene_continue
-draw_green_panel:
-    sw   $t5, 0($t0)
-    j    scene_continue
-draw_red_panel:
-    sw   $t6, 0($t0)
-    j    scene_continue
-scene_continue:
     addi $t0, $t0, 4
+    addi $t2, $t2, -1
+    bne  $t2, $zero, gfx_lp_loop
+    jr   $ra
+
+# ------------------------------------------------------------
+# gfx_color_celda
+# Decide de que color va una celda de la pantalla en el fondo fijo
+# (encabezado, paredes, piso, ajedrez del tablero, paneles).
+# Argumentos: $a0 = x (0..31), $a1 = y (0..31)
+# Retorno: $v0 = color
+# Preserva: todo salvo $t0-$t5 y $v0 (hoja)
+# ------------------------------------------------------------
+gfx_color_celda:
+    li   $t0, GFX_TABLERO_Y
+    blt  $a1, $t0, gfx_cc_encabezado     # filas arriba del tablero: encabezado
+
+    li   $t1, GFX_TABLERO_X
+    addi $t2, $t1, -1                    # $t2 = x de la pared izquierda
+    blt  $a0, $t2, gfx_cc_negro          # margen izquierdo
+    addi $t3, $t1, ANCHO                 # $t3 = x de la pared derecha
+    bgt  $a0, $t3, gfx_cc_panel          # a la derecha del tablero
+
+    # --- columnas del tablero (paredes incluidas) ---
+    beq  $a0, $t2, gfx_cc_pared
+    beq  $a0, $t3, gfx_cc_pared
+    addi $t4, $t0, ALTO                  # $t4 = y del piso
+    beq  $a1, $t4, gfx_cc_pared
+    bgt  $a1, $t4, gfx_cc_negro
+    add  $t5, $a0, $a1                   # interior: ajedrez
+    andi $t5, $t5, 1
+    beq  $t5, $zero, gfx_cc_oscuro
+    cargar_global($v0, COLOR_BG_GRAY_LIGHT)
+    j    gfx_cc_fin
+gfx_cc_oscuro:
+    cargar_global($v0, COLOR_BG_GREY_DARK)
+    j    gfx_cc_fin
+
+gfx_cc_panel:
+    li   $t1, GFX_PANEL_X
+    blt  $a0, $t1, gfx_cc_negro
+    addi $t1, $t1, GFX_PANEL_ANCHO
+    bge  $a0, $t1, gfx_cc_negro         # fuera del panel (derecha)
+    li   $t1, GFX_SIG_Y1
+    blt  $a1, $t1, gfx_cc_verde         # zona "siguiente"
+    li   $t1, GFX_NIV_Y0
+    blt  $a1, $t1, gfx_cc_negro         # separacion entre zonas
+    li   $t1, GFX_NIV_Y1
+    blt  $a1, $t1, gfx_cc_verde         # zona "nivel"
+    j    gfx_cc_negro
+
+gfx_cc_encabezado:
+    cargar_global($v0, COLOR_PANEL_SCORE)
+    j    gfx_cc_fin
+gfx_cc_pared:
+    cargar_global($v0, COLOR_BG_WALL)
+    j    gfx_cc_fin
+gfx_cc_verde:
+    cargar_global($v0, COLOR_PANEL_NEXT)
+    j    gfx_cc_fin
+gfx_cc_negro:
+    cargar_global($v0, COLOR_BLACK)
+gfx_cc_fin:
+    jr   $ra
+
+# ------------------------------------------------------------
+# gfx_dibujar_bloques_fijos
+# Pinta las celdas ocupadas del tablero (PLAYFIELD, ANCHO x ALTO,
+# indice = fila * ANCHO + columna; 0 = vacia).
+# Argumentos: ninguno
+# Retorno: ninguno
+# Preserva: $ra, $s0-$s3
+# ------------------------------------------------------------
+gfx_dibujar_bloques_fijos:
+    guardar_ra_s0_s1_s2_s3
+    la   $s0, PLAYFIELD                  # puntero a la celda actual
+    cargar_global($s3, COLOR_FROZEN_BLOCK)
+    li   $s1, 0                          # fila
+gfx_bf_fila:
+    li   $s2, 0                          # columna
+gfx_bf_col:
+    lw   $t0, 0($s0)
+    beq  $t0, $zero, gfx_bf_vacia
+    addi $t1, $s2, GFX_TABLERO_X         # x en pantalla
+    addi $t2, $s1, GFX_TABLERO_Y         # y en pantalla
+    gfx_pintar_celda($t1, $t2, $s3)
+gfx_bf_vacia:
+    addi $s0, $s0, 4
+    addi $s2, $s2, 1
+    blt  $s2, ANCHO, gfx_bf_col
     addi $s1, $s1, 1
-    blt  $s1, 32, scene_inner_loop
+    blt  $s1, ALTO, gfx_bf_fila
+    restaurar_ra_s0_s1_s2_s3
+    jr   $ra
+
+# ------------------------------------------------------------
+# draw_scene
+# Dibuja el fondo fijo (encabezado, tablero, paneles) y los bloques
+# ya fijados. No dibuja la pieza activa ni los numeros.
+# Argumentos: ninguno
+# Retorno: ninguno
+# Preserva: $ra, $s0, $s1
+# ------------------------------------------------------------
+.globl draw_scene
+draw_scene:
+    guardar_ra_s0_s1
+    li   $s1, 0                          # y
+gfx_ds_y:
+    li   $s0, 0                          # x
+gfx_ds_x:
+    move $a0, $s0
+    move $a1, $s1
+    jal  gfx_color_celda                 # $v0 = color de la celda
+    gfx_pintar_celda($s0, $s1, $v0)
     addi $s0, $s0, 1
-    blt  $s0, 32, scene_outer_loop
-
-    # --- NEW: Draw all frozen pieces from the PLAYFIELD array ---
-    la   $s0, PLAYFIELD              # $s0 = pointer to the start of the playfield
-    li   $s1, 512                    # $s1 = counter for all 512 cells
-    li   $s2, 0                      # $s2 = index of the current cell (0 to 511)
-    la   $t1, COLOR_FROZEN_BLOCK
-    lw   $t1, 0($t1)                 # $t1 = color for frozen blocks
-
-draw_playfield_loop:
-    lw   $t0, 0($s0)                 # Load the value from the current playfield cell
-    beq  $t0, $zero, check_next_cell # If it's 0 (empty), skip drawing
-
-    # This cell is occupied (1), so we need to draw a block.
-    # Calculate the (x,y) of this cell in the playfield.
-    li   $t0, 16
-    divu $s2, $t0                    # Use divu for unsigned division
-    mflo $t2                         # $t2 = y = index / 16
-    mfhi $t3                         # $t3 = x = index % 16
-    
-    # Calculate the screen memory address for this (x,y)
-    addi $t3, $t3, 3                 # Add screen x-offset for the playfield
-    li   $t4, 32
-    mul  $t4, $t2, $t4
-    add  $t4, $t4, $t3
-    mul  $t4, $t4, 4
-    la   $t0, ADDR_DSPL
-    lw   $t0, 0($t0)
-    add  $t0, $t0, $t4               # $t0 = final memory address to draw
-    
-    # Draw the frozen block
-    sw   $t1, 0($t0)
-
-check_next_cell:
-    addi $s0, $s0, 4                 # Move to the next cell in the playfield array
-    addi $s2, $s2, 1                 # Increment index
-    addi $s1, $s1, -1                # Decrement counter
-    bne  $s1, $zero, draw_playfield_loop
-
+    blt  $s0, GFX_LADO, gfx_ds_x
+    addi $s1, $s1, 1
+    blt  $s1, GFX_LADO, gfx_ds_y
+    jal  gfx_dibujar_bloques_fijos
+    restaurar_ra_s0_s1
     jr   $ra
 
+# ============================================================
+# PIEZAS
+# ============================================================
 
-#-----------------------------------------------------------------------------
-# draw_line: Draws a vertical or horizontal line.
-# Arguments:
-#   $a0 - Starting X coordinate
-#   $a1 - Starting Y coordinate
-#   $a2 - Length of the line (in units)
-#   $a3 - Direction (0 for horizontal, 1 for vertical)
-#-----------------------------------------------------------------------------
-draw_line:
-    # Calculate starting memory address from (x, y) coordinates
-    # address = base + (y * 32 + x) * 4
-    li   $t5, 32
-    mul  $t4, $a1, $t5         # $t4 = y * 32
-    add  $t4, $t4, $a0         # $t4 = y * 32 + x
-    mul  $t4, $t4, 4           # $t4 = (y * 32 + x) * 4 (final byte offset)
-
-    la   $t0, ADDR_DSPL
-    lw   $t0, 0($t0)           # $t0 = base address
-    add  $t0, $t0, $t4         # $t0 = starting memory address for the line
-
-    # Get the wall color
-    la   $t1, COLOR_BG_WALL
-    lw   $t1, 0($t1)
-
-    # Determine address increment based on direction
-    li   $t5, 4                # Default increment for horizontal lines
-    bne  $a3, 1, setup_line_loop # If not vertical, skip ahead
-    li   $t5, 128              # Increment for vertical lines
-
-setup_line_loop:
-    move $t2, $a2              # $t2 = line length (our counter)
-
-line_loop:
-    sw   $t1, 0($t0)           # Draw one unit of the line
-    add  $t0, $t0, $t5         # Move pointer by horizontal or vertical increment
-    addi $t2, $t2, -1          # Decrement counter
-    bne  $t2, $zero, line_loop # Loop until line is drawn
-
-    jr   $ra
-    
-
-#-----------------------------------------------------------------------------
-# draw_tetromino: Draws the current piece with its current color and position.
-# Arguments:
-#   $a0 - Pointer to the piece's shape data
-#   $a1 - X coordinate (within the 16-wide playfield)
-#   $a2 - Y coordinate (within the 32-high playfield)
-#-----------------------------------------------------------------------------
-draw_tetromino:
-    # --- Prologue: Save registers ---
-    addi $sp, $sp, -16
-    sw   $ra, 12($sp)
-    sw   $s0, 8($sp)
-    sw   $s1, 4($sp)
-    sw   $s2, 0($sp)
-
-    # Load the CURRENT piece's color
-    la   $t1, CURRENT_PIECE_COLOR
-    lw   $t1, 0($t1)
-
-    li   $t2, 4
+# ------------------------------------------------------------
+# gfx_dibujar_pieza
+# Dibuja las 4 celdas de una pieza en coordenadas de PANTALLA.
+# Argumentos: $a0 = direccion de la forma (4 pares dx, dy)
+#             $a1 = x de pantalla, $a2 = y de pantalla, $a3 = color
+# Retorno: ninguno
+# Preserva: todo salvo $t2-$t7 y $t9 (hoja)
+# ------------------------------------------------------------
+gfx_dibujar_pieza:
     move $t7, $a0
-
-draw_tetromino_loop:
-    lw   $t3, 0($t7)
-    lw   $t4, 4($t7)
-
-    # Compute absolute screen coordinates
-    add  $s0, $a1, $t3         # abs_x = piece_x + rel_x
-    add  $s1, $a2, $t4         # abs_y = piece_y + rel_y
-    
-    # Add the playfield's offset from the left edge of the screen
-    addi $s0, $s0, 3           # The playfield starts at column 3
-
-    # Compute final memory address from (abs_x, abs_y)
-    li   $s2, 32               # Screen width is 32 units
-    mul  $s2, $s1, $s2         # y_offset = abs_y * screen_width
-    add  $s2, $s2, $s0         # index = y_offset + abs_x
-    mul  $s2, $s2, 4           # byte_offset = index * 4
-
-    la   $t0, ADDR_DSPL
-    lw   $t0, 0($t0)
-    add  $t0, $t0, $s2
-
-    sw   $t1, 0($t0)
-
+    li   $t2, GFX_BLOQUES
+gfx_dp_loop:
+    lw   $t3, 0($t7)                     # dx
+    lw   $t4, 4($t7)                     # dy
+    add  $t5, $a1, $t3
+    add  $t6, $a2, $t4
+    gfx_pintar_celda($t5, $t6, $a3)
     addi $t7, $t7, 8
     addi $t2, $t2, -1
-    bne  $t2, $zero, draw_tetromino_loop
-
-    # --- Epilogue: Restore registers ---
-    lw   $s2, 0($sp)
-    lw   $s1, 4($sp)
-    lw   $s0, 8($sp)
-    lw   $ra, 12($sp)
-    addi $sp, $sp, 16
+    bne  $t2, $zero, gfx_dp_loop
     jr   $ra
 
-#-----------------------------------------------------------------------------
-# draw_digit: Draws a single 3x5 digit at a given screen location.
-#-----------------------------------------------------------------------------
-draw_digit:
-    # --- Prologue ---
-    addi $sp, $sp, -16
-    sw   $ra, 12($sp)
-    sw   $s0, 8($sp)
-    sw   $s1, 4($sp)
-    sw   $s2, 0($sp)
+# ------------------------------------------------------------
+# draw_tetromino
+# Dibuja la pieza activa con su color (CURRENT_PIECE_COLOR).
+# Argumentos: $a0 = direccion de la forma
+#             $a1 = x en el tablero (0..ANCHO-1), $a2 = y en el tablero
+# Retorno: ninguno
+# Preserva: $ra
+# ------------------------------------------------------------
+.globl draw_tetromino
+draw_tetromino:
+    guardar_ra
+    addi $a1, $a1, GFX_TABLERO_X
+    addi $a2, $a2, GFX_TABLERO_Y
+    cargar_global($a3, CURRENT_PIECE_COLOR)
+    jal  gfx_dibujar_pieza
+    restaurar_ra
+    jr   $ra
 
-    # Get the pointer to the correct font data
-    sll  $t0, $a0, 2
-    la   $t1, FONT_TABLE
+# ------------------------------------------------------------
+# gfx_dibujar_siguiente
+# Dibuja la pieza siguiente (rotacion 0) en la zona "siguiente".
+# Llamar DESPUES de draw_scene (que pinta el fondo verde).
+# Argumentos: $a0 = tipo de pieza (0=I, 1=J, 2=L, 3=O, 4=S, 5=T, 6=Z)
+# Retorno: ninguno
+# Preserva: $ra
+# ------------------------------------------------------------
+.globl gfx_dibujar_siguiente
+gfx_dibujar_siguiente:
+    guardar_ra
+    sll  $t0, $a0, 2                     # tipo * 4 bytes
+    la   $t1, ALL_COLORS_TABLE
     add  $t1, $t1, $t0
-    lw   $s0, 0($t1)      # $s0 = pointer to the font data for this digit
-
-    li   $s1, 0           # Row index (y_offset), from 0 to 4
-
-digit_row_loop:
-    lw   $t0, 0($s0)      # $t0 = pixel data for the current row
-    li   $s2, 2           # Column index starts at 2 (right)
-
-digit_col_loop:
-    andi $t1, $t0, 1      # Check the rightmost bit of the row data
-    beq  $t1, $zero, skip_pixel
-
-    # This bit is a 1, so we need to draw it.
-    # Calculate screen coordinates for this pixel
-    add  $t1, $a1, $s2    # screen_x = base_x + col_index
-    add  $t2, $a2, $s1    # screen_y = base_y + row_index
-
-    # Calculate final memory address
-    li   $t3, 32
-    mul  $t3, $t2, $t3
-    add  $t3, $t3, $t1
-    sll  $t3, $t3, 2
-    la   $t4, ADDR_DSPL
-    lw   $t4, 0($t4)
-    add  $t4, $t4, $t3
-    la   $t5, COLOR_TEXT_ORANGE
-    lw   $t5, 0($t5)
-    sw   $t5, 0($t4)
-
-skip_pixel:
-    srl  $t0, $t0, 1      # Move to the next bit (pixel) in the row data
-    addi $s2, $s2, -1     # Decrement column index (move left)
-    bge  $s2, $zero, digit_col_loop # Loop while column is >= 0
-
-    addi $s0, $s0, 4      # Move to the next row of font data
-    addi $s1, $s1, 1      # row_index++
-    blt  $s1, 5, digit_row_loop
-
-    # --- Epilogue ---
-    lw   $s2, 0($sp)
-    lw   $s1, 4($sp)
-    lw   $s0, 8($sp)
-    lw   $ra, 12($sp)
-    addi $sp, $sp, 16
+    lw   $t1, 0($t1)                     # direccion de la variable de color
+    lw   $a3, 0($t1)                     # $a3 = color
+    la   $t1, MASTER_SHAPE_TABLE
+    add  $t1, $t1, $t0
+    lw   $t1, 0($t1)                     # tabla de rotaciones de esa pieza
+    lw   $a0, 0($t1)                     # forma con rotacion 0
+    li   $a1, GFX_SIG_X
+    li   $a2, GFX_SIG_Y
+    jal  gfx_dibujar_pieza
+    restaurar_ra
     jr   $ra
 
-#-----------------------------------------------------------------------------
-# draw_score: Displays the current score in the side panel.
-# This is a robust version that handles scores of any length.
-#-----------------------------------------------------------------------------
-## REPLACE ENTIRE FUNCTION
-draw_score:
-    addi $sp, $sp, -4
-    sw   $ra, 0($sp)
+# ============================================================
+# TEXTO Y NUMEROS
+# ============================================================
 
-    la   $t0, SCORE
-    lw   $a0, 0($t0)        # value
-    li   $a1, 21            # panel left
-    li   $a2, 10            # panel width
-    li   $a3, 24            # vertically centered
-    jal  draw_number_centered
-
-    lw   $ra, 0($sp)
-    addi $sp, $sp, 4
+# ------------------------------------------------------------
+# gfx_dibujar_glifo
+# Dibuja un glifo de 3x5 con su esquina superior izquierda en (x, y).
+# Argumentos: $a0 = direccion del glifo (5 palabras, una por fila)
+#             $a1 = x, $a2 = y, $a3 = color
+# Retorno: ninguno
+# Preserva: todo salvo $t0-$t7 y $t9 (hoja)
+# ------------------------------------------------------------
+.globl gfx_dibujar_glifo
+gfx_dibujar_glifo:
+    move $t4, $a0                        # puntero a la fila actual
+    li   $t5, 0                          # fila (0..4)
+    move $t7, $a3                        # color
+gfx_glifo_fila:
+    lw   $t0, 0($t4)                     # bits de la fila (3 bits)
+    li   $t6, GFX_GLIFO_COL0             # columna, empieza por la derecha
+gfx_glifo_col:
+    andi $t1, $t0, 1
+    beq  $t1, $zero, gfx_glifo_salto
+    add  $t2, $a1, $t6                   # x absoluta
+    add  $t3, $a2, $t5                   # y absoluta
+    gfx_pintar_celda($t2, $t3, $t7)
+gfx_glifo_salto:
+    srl  $t0, $t0, 1
+    addi $t6, $t6, -1
+    bge  $t6, $zero, gfx_glifo_col
+    addi $t4, $t4, 4                     # siguiente fila del glifo
+    addi $t5, $t5, 1
+    blt  $t5, GFX_GLIFO_ALTO, gfx_glifo_fila
     jr   $ra
 
-
-extract_and_draw:
-    li   $t0, 10          # Must be reset before each division
-    divu $s0, $t0         # Divide score by 10
-    mflo $s0              # New score = quotient
-    mfhi $a0              # Digit to draw = remainder
-
-    move $a1, $s1         # X position
-    move $a2, $s2         # Y position
-    jal  draw_digit       # Draw the digit
-
-    addi $s1, $s1, -4     # Move left for the next digit
-
-    bne  $s0, $zero, extract_and_draw
-
-draw_score_cleanup:
-    # --- Epilogue ---
-    lw   $s2, 0($sp)
-    lw   $s1, 4($sp)
-    lw   $s0, 8($sp)
-    lw   $ra, 12($sp)
-    addi $sp, $sp, 16
-    jr   $ra
-    
-## NEW: draw_high_score
-# Displays the "HI" text and the high score value in the top right panel.
-
-## REPLACE ENTIRE FUNCTION
-## REPLACE ENTIRE FUNCTION
-draw_high_score:
-    addi $sp, $sp, -12
-    sw   $ra, 8($sp)
-    sw   $s0, 4($sp)
-    sw   $s1, 0($sp)
-
-    # "HI" centered in 10-wide panel: label width=8 -> x = 21 + (10-8)/2 = 22
-    la   $a0, HI_TEXT
-    li   $a1, 22            # x
-    li   $a2, 2             # y
-    jal  draw_string
-
-    # value on next line, centered
-    la   $t0, HIGH_SCORE
-    lw   $a0, 0($t0)        # value
-    li   $a1, 21            # panel left
-    li   $a2, 10            # panel width
-    li   $a3, 8             # y = 2 + 6 (5px high + 1px gap)
-    jal  draw_number_centered
-
-    lw   $s1, 0($sp)
-    lw   $s0, 4($sp)
-    lw   $ra, 8($sp)
-    addi $sp, $sp, 12
+# ------------------------------------------------------------
+# draw_digit
+# Dibuja un digito 0-9 en (x, y) con COLOR_TEXT_ORANGE.
+# Argumentos: $a0 = digito (0-9), $a1 = x, $a2 = y
+# Retorno: ninguno
+# Preserva: $ra
+# ------------------------------------------------------------
+.globl draw_digit
+draw_digit:
+    guardar_ra
+    addi $t0, $a0, GFX_FUENTE_IDX_DIGITO
+    sll  $t0, $t0, 2
+    la   $t1, gfx_fuente_tabla
+    add  $t1, $t1, $t0
+    lw   $a0, 0($t1)                     # glifo del digito
+    cargar_global($a3, COLOR_TEXT_ORANGE)
+    jal  gfx_dibujar_glifo
+    restaurar_ra
     jr   $ra
 
-
-
-
-####
-
-
-draw_game_over_screen:
-    addi $sp, $sp, -4
-    sw   $ra, 0($sp)
-
-    # Redraw background
-    jal  draw_scene
-
-    # Keep panels stable during game over
-    jal  draw_score
-    jal  draw_high_score
-
-    # --- Centered text with 6-row spacing ---
-    # Choose a base so all 4 lines fit: 8,14,20,26 (each line is 5px tall)
-    # "GAME" width = 4 chars * 4 stride = 16 -> center x = (32-16)/2 = 8
-    la   $a0, GAME_TEXT
-    li   $a1, 8       # x
-    li   $a2, 8       # y
-    jal  draw_string
-
-    la   $a0, OVER_TEXT
-    li   $a1, 8       # x
-    li   $a2, 14      # y = 8 + 6
-    jal  draw_string
-
-    # "RETRY" width = 5*4 = 20 -> center x = 6
-    la   $a0, RETRY_ONLY_TEXT
-    li   $a1, 6
-    li   $a2, 20      # y = 14 + 6
-    jal  draw_string
-
-    # "(R)" width = 3*4 = 12 -> center x = 10
-    la   $a0, R_PARENS_TEXT
-    li   $a1, 10
-    li   $a2, 26      # y = 20 + 6
-    jal  draw_string
-
-    lw   $ra, 0($sp)
-    addi $sp, $sp, 4
+# ------------------------------------------------------------
+# draw_char
+# Dibuja un caracter ASCII en (x, y) con COLOR_TEXT_ORANGE.
+# Minusculas se dibujan como mayusculas; lo que no tiene glifo
+# (fuera de 32..90) se dibuja como espacio.
+# Argumentos: $a0 = ASCII, $a1 = x, $a2 = y
+# Retorno: ninguno
+# Preserva: $ra
+# ------------------------------------------------------------
+.globl draw_char
+draw_char:
+    guardar_ra
+    li   $t1, 'a'
+    blt  $a0, $t1, gfx_dc_rango
+    li   $t1, 'z'
+    bgt  $a0, $t1, gfx_dc_rango
+    addi $a0, $a0, -32                   # minuscula -> mayuscula
+gfx_dc_rango:
+    la   $t0, gfx_g_vacio                # por defecto: espacio
+    li   $t1, GFX_FUENTE_ASCII_MIN
+    blt  $a0, $t1, gfx_dc_listo
+    li   $t2, GFX_FUENTE_ASCII_MAX
+    bgt  $a0, $t2, gfx_dc_listo
+    sub  $t1, $a0, $t1                   # indice = ASCII - MIN
+    sll  $t1, $t1, 2
+    la   $t2, gfx_fuente_tabla
+    add  $t2, $t2, $t1
+    lw   $t0, 0($t2)                     # glifo
+gfx_dc_listo:
+    move $a0, $t0
+    cargar_global($a3, COLOR_TEXT_ORANGE)
+    jal  gfx_dibujar_glifo
+    restaurar_ra
     jr   $ra
 
-
-
-## NEW: draw_string
-# Draws a null-terminated string at a given screen location.
-# Arguments:
-#   $a0 - Address of the null-terminated string
-#   $a1 - Starting X coordinate (in units)
-#   $a2 - Starting Y coordinate (in units)
+# ------------------------------------------------------------
+# draw_string
+# Dibuja un texto terminado en 0 con la esquina superior izquierda
+# en (x, y).
+# Argumentos: $a0 = texto, $a1 = x, $a2 = y
+# Retorno: ninguno
+# Preserva: $ra, $s0-$s2
+# ------------------------------------------------------------
+.globl draw_string
 draw_string:
-    # --- Prologue ---
-    addi $sp, $sp, -16
-    sw   $ra, 12($sp)
-    sw   $s0, 8($sp) # String address
-    sw   $s1, 4($sp) # Current X
-    sw   $s2, 0($sp) # Current Y
-
-    move $s0, $a0
-    move $s1, $a1
-    move $s2, $a2
-
-draw_string_loop:
-    lb   $a0, 0($s0) # Load character
-    beq  $a0, $zero, draw_string_done # If null terminator, we're done
-
-    # Prepare arguments for draw_char
-    # $a0 already has the character
+    guardar_ra_s0_s1_s2
+    move $s0, $a0                        # puntero al caracter actual
+    move $s1, $a1                        # x actual
+    move $s2, $a2                        # y
+gfx_dstr_loop:
+    lb   $a0, 0($s0)
+    beq  $a0, $zero, gfx_dstr_fin
     move $a1, $s1
     move $a2, $s2
     jal  draw_char
-
-    addi $s1, $s1, 4  # Move X position right for the next character (3px wide + 1px space)
-    addi $s0, $s0, 1  # Move to next char in string
-    j    draw_string_loop
-
-draw_string_done:
-    # --- Epilogue ---
-    lw   $s2, 0($sp)
-    lw   $s1, 4($sp)
-    lw   $s0, 8($sp)
-    lw   $ra, 12($sp)
-    addi $sp, $sp, 16
+    addi $s1, $s1, GFX_CHAR_PASO
+    addi $s0, $s0, 1
+    j    gfx_dstr_loop
+gfx_dstr_fin:
+    restaurar_ra_s0_s1_s2
     jr   $ra
 
-## FIXED: draw_char
-# Draws a single character. This is a helper for draw_string.
-# It uses a big if-else chain to find the right font data.
-# Arguments:
-#   $a0 - The ASCII character to draw
-#   $a1 - X coordinate
-#   $a2 - Y coordinate
-
-## REPLACEMENT FUNCTION: draw_char
-draw_char:
-    # Save original X/Y
-    addi $sp, $sp, -8
-    sw   $a1, 4($sp)
-    sw   $a2, 0($sp)
-
-    move $t6, $a0           # keep ASCII char for comparisons
-    la   $a0, FONT_SPACE    # default font (space)
-
-    # Map ASCII to font pointer (compare against $t6)
-    li   $t0, 'A'
-    beq  $t6, $t0, char_is_A
-    li   $t0, 'E'
-    beq  $t6, $t0, char_is_E
-    li   $t0, 'G'
-    beq  $t6, $t0, char_is_G
-    li   $t0, 'H'
-    beq  $t6, $t0, char_is_H
-    li   $t0, 'I'
-    beq  $t6, $t0, char_is_I
-    li   $t0, 'M'
-    beq  $t6, $t0, char_is_M
-    li   $t0, 'O'
-    beq  $t6, $t0, char_is_O
-    li   $t0, 'R'
-    beq  $t6, $t0, char_is_R
-    li   $t0, 'T'
-    beq  $t6, $t0, char_is_T
-    li   $t0, 'V'
-    beq  $t6, $t0, char_is_V
-    li   $t0, 'Y'
-    beq  $t6, $t0, char_is_Y
-    li   $t0, '('
-    beq  $t6, $t0, char_is_LParen
-    li   $t0, ')'
-    beq  $t6, $t0, char_is_RParen
-    li   $t0, ' '
-    beq  $t6, $t0, char_is_Space
-    j    draw_char_found_font
-
-char_is_A:
-    la   $a0, FONT_A
-    j    draw_char_found_font
-char_is_E:
-    la   $a0, FONT_E
-    j    draw_char_found_font
-char_is_G:
-    la   $a0, FONT_G
-    j    draw_char_found_font
-char_is_H:
-    la   $a0, FONT_H
-    j    draw_char_found_font
-char_is_I:
-    la   $a0, FONT_I
-    j    draw_char_found_font
-char_is_M:
-    la   $a0, FONT_M
-    j    draw_char_found_font
-char_is_O:
-    la   $a0, FONT_O
-    j    draw_char_found_font
-char_is_R:
-    la   $a0, FONT_R
-    j    draw_char_found_font
-char_is_T:
-    la   $a0, FONT_T
-    j    draw_char_found_font
-char_is_V:
-    la   $a0, FONT_V
-    j    draw_char_found_font
-char_is_Y:
-    la   $a0, FONT_Y
-    j    draw_char_found_font
-char_is_LParen:
-    la   $a0, FONT_L_PAREN
-    j    draw_char_found_font
-char_is_RParen:
-    la   $a0, FONT_R_PAREN
-    j    draw_char_found_font
-char_is_Space:
-    la   $a0, FONT_SPACE
-    j    draw_char_found_font
-
-draw_char_found_font:
-    move $t0, $a0
-    lw   $a1, 4($sp)       # restore X
-    lw   $a2, 0($sp)       # restore Y
-
-    # Inline draw loop with COLOR_TEXT_ORANGE
-    addi $sp, $sp, -16
-    sw   $ra, 12($sp)
-    sw   $s0, 8($sp)
-    sw   $s1, 4($sp)
-    sw   $s2, 0($sp)
-
-    move $s0, $t0
-    li   $s1, 0
-
-char_row_loop:
-    lw   $t0, 0($s0)
-    li   $s2, 2
-
-char_col_loop:
-    andi $t1, $t0, 1
-    beq  $t1, $zero, char_skip
-    add  $t1, $a1, $s2
-    add  $t2, $a2, $s1
-    li   $t3, 32
-    mul  $t3, $t2, $t3
-    add  $t3, $t3, $t1
-    sll  $t3, $t3, 2
-    la   $t4, ADDR_DSPL
-    lw   $t4, 0($t4)
-    add  $t4, $t4, $t3
-    la   $t5, COLOR_TEXT_ORANGE
-    lw   $t5, 0($t5)
-    sw   $t5, 0($t4)
-
-char_skip:
-    srl  $t0, $t0, 1
-    addi $s2, $s2, -1
-    bge  $s2, $zero, char_col_loop
-    addi $s0, $s0, 4
-    addi $s1, $s1, 1
-    blt  $s1, 5, char_row_loop
-
-    # Epilogue
-    lw   $s2, 0($sp)
-    lw   $s1, 4($sp)
-    lw   $s0, 8($sp)
-    lw   $ra, 12($sp)
-    addi $sp, $sp, 16
-
-    addi $sp, $sp, 8
+# ------------------------------------------------------------
+# gfx_texto_centrado_en
+# Dibuja un texto centrado horizontalmente dentro de una zona.
+# Argumentos: $a0 = texto, $a1 = x izquierda de la zona,
+#             $a2 = ancho de la zona, $a3 = y
+# Retorno: ninguno
+# Preserva: $ra
+# ------------------------------------------------------------
+.globl gfx_texto_centrado_en
+gfx_texto_centrado_en:
+    guardar_ra
+    li   $t0, 0                          # longitud del texto
+    move $t1, $a0
+gfx_tc_len:
+    lb   $t2, 0($t1)
+    beq  $t2, $zero, gfx_tc_medido
+    addi $t0, $t0, 1
+    addi $t1, $t1, 1
+    j    gfx_tc_len
+gfx_tc_medido:
+    li   $t3, GFX_CHAR_PASO
+    mul  $t0, $t0, $t3
+    addi $t0, $t0, -1                    # ancho = 4*letras - 1
+    sub  $t1, $a2, $t0
+    sra  $t1, $t1, 1                     # (zona - ancho) / 2
+    add  $a1, $a1, $t1                   # x final
+    move $a2, $a3                        # y
+    jal  draw_string
+    restaurar_ra
     jr   $ra
 
-# a0 = nonnegative value
-# v0 = digit count (1 if value==0)
+# ------------------------------------------------------------
+# count_digits
+# Cuenta los digitos decimales de un numero.
+# Argumentos: $a0 = valor (>= 0)
+# Retorno: $v0 = cantidad de digitos (1 si el valor es 0)
+# Preserva: todo salvo $t0, $t1 y $v0 (hoja)
+# ------------------------------------------------------------
 count_digits:
-    addi $sp, $sp, -8
-    sw   $ra, 4($sp)
-    sw   $a0, 0($sp)
-
-    bne  $a0, $zero, cd_loop_prep
     li   $v0, 1
-    j    cd_done
-cd_loop_prep:
-    li   $v0, 0
-cd_loop:
+    move $t1, $a0
+    li   $t0, 10                         # base decimal
+gfx_cd_loop:
+    divu $t1, $t0
+    mflo $t1
+    beq  $t1, $zero, gfx_cd_fin
     addi $v0, $v0, 1
-    li   $t0, 10
-    divu $a0, $t0
-    mflo $a0
-    bne  $a0, $zero, cd_loop
-
-cd_done:
-    lw   $a0, 0($sp)
-    lw   $ra, 4($sp)
-    addi $sp, $sp, 8
+    j    gfx_cd_loop
+gfx_cd_fin:
     jr   $ra
 
-# Draw number centered in a panel.
-# a0=value, a1=panel_left_x, a2=panel_width, a3=y
+# ------------------------------------------------------------
+# draw_number_centered
+# Dibuja un numero centrado en una zona.
+# Argumentos: $a0 = valor, $a1 = x izquierda de la zona,
+#             $a2 = ancho de la zona, $a3 = y
+# Retorno: ninguno
+# Preserva: $ra, $s0-$s4
+# ------------------------------------------------------------
+.globl draw_number_centered
 draw_number_centered:
-    addi $sp, $sp, -24
-    sw   $ra, 20($sp)
-    sw   $s0, 16($sp)   # value
-    sw   $s1, 12($sp)   # left
-    sw   $s2, 8($sp)    # width
-    sw   $s3, 4($sp)    # y
-    sw   $s4, 0($sp)    # digit count
-
-    move $s0, $a0
-    move $s1, $a1
-    move $s2, $a2
-    move $s3, $a3
+    guardar_ra_s0_s1_s2_s3_s4
+    move $s0, $a0                        # valor
+    move $s1, $a1                        # x izquierda
+    move $s2, $a2                        # ancho
+    move $s3, $a3                        # y
 
     move $a0, $s0
     jal  count_digits
-    move $s4, $v0               # digits
+    move $s4, $v0                        # cantidad de digitos
 
-    # W = 4*digits - 1  (each digit is 3 wide + 1 space, except last)
-    li   $t0, 4
-    mul  $t0, $t0, $s4
-    addi $t0, $t0, -1           # t0 = W
+    li   $t3, GFX_CHAR_PASO
+    mul  $t0, $t3, $s4
+    addi $t0, $t0, -1                    # W = 4*digitos - 1
 
-    # leftmost_x = left + ((panel_width - W)/2)
     sub  $t1, $s2, $t0
     sra  $t1, $t1, 1
-    add  $t1, $s1, $t1          # t1 = leftmost_x
+    add  $t1, $s1, $t1                   # x del digito mas a la izquierda
 
-    # rightmost digit's left x = leftmost_x + 4*(digits-1)
     addi $t2, $s4, -1
-    li   $t3, 4
     mul  $t2, $t2, $t3
-    add  $s1, $t1, $t2          # s1 = current x (rightmost digit pos)
+    add  $s1, $t1, $t2                   # x del digito mas a la derecha
 
-    # Draw right-to-left
-    bne  $s0, $zero, dnc_loop
-    li   $a0, 0                 # special case value==0
+    bne  $s0, $zero, gfx_dnc_loop
+    li   $a0, 0                          # caso especial: valor 0
     move $a1, $s1
     move $a2, $s3
     jal  draw_digit
-    j    dnc_done
+    j    gfx_dnc_fin
 
-dnc_loop:
+gfx_dnc_loop:                            # dibuja de derecha a izquierda
     li   $t3, 10
     divu $s0, $t3
-    mfhi $a0                    # remainder = digit
-    mflo $s0                    # quotient
+    mfhi $a0                             # digito = resto
+    mflo $s0                             # valor = cociente
     move $a1, $s1
     move $a2, $s3
     jal  draw_digit
-    addi $s1, $s1, -4
-    bne  $s0, $zero, dnc_loop
+    li   $t3, GFX_CHAR_PASO
+    sub  $s1, $s1, $t3                   # un digito a la izquierda
+    bne  $s0, $zero, gfx_dnc_loop
 
-dnc_done:
-    lw   $s4, 0($sp)
-    lw   $s3, 4($sp)
-    lw   $s2, 8($sp)
-    lw   $s1, 12($sp)
-    lw   $s0, 16($sp)
-    lw   $ra, 20($sp)
-    addi $sp, $sp, 24
-    jr   $ra   
+gfx_dnc_fin:
+    restaurar_ra_s0_s1_s2_s3_s4
+    jr   $ra
+
+# ============================================================
+# HUD
+# ============================================================
+
+# ------------------------------------------------------------
+# draw_score
+# Dibuja "PTS" y el puntaje (SCORE) en el encabezado.
+# Argumentos: ninguno
+# Retorno: ninguno
+# Preserva: $ra
+# ------------------------------------------------------------
+.globl draw_score
+draw_score:
+    guardar_ra
+    la   $a0, gfx_t_pts
+    li   $a1, GFX_ETIQ_X
+    li   $a2, GFX_PTS_Y
+    jal  draw_string
+    cargar_global($a0, SCORE)
+    li   $a1, GFX_PANEL_X
+    li   $a2, GFX_PANEL_ANCHO
+    li   $a3, GFX_PTS_Y
+    jal  draw_number_centered
+    restaurar_ra
+    jr   $ra
+
+# ------------------------------------------------------------
+# draw_high_score
+# Dibuja "HI" y el record (HIGH_SCORE) en el encabezado.
+# Argumentos: ninguno
+# Retorno: ninguno
+# Preserva: $ra
+# ------------------------------------------------------------
+.globl draw_high_score
+draw_high_score:
+    guardar_ra
+    la   $a0, HI_TEXT
+    li   $a1, GFX_ETIQ_X
+    li   $a2, GFX_HI_Y
+    jal  draw_string
+    cargar_global($a0, HIGH_SCORE)
+    li   $a1, GFX_PANEL_X
+    li   $a2, GFX_PANEL_ANCHO
+    li   $a3, GFX_HI_Y
+    jal  draw_number_centered
+    restaurar_ra
+    jr   $ra
+
+# ------------------------------------------------------------
+# gfx_dibujar_nivel
+# Dibuja "NIV" y el numero de nivel en la zona verde de abajo.
+# Argumentos: $a0 = nivel
+# Retorno: ninguno
+# Preserva: $ra, $s0
+# ------------------------------------------------------------
+.globl gfx_dibujar_nivel
+gfx_dibujar_nivel:
+    guardar_ra_s0
+    move $s0, $a0
+    la   $a0, gfx_t_nivel
+    li   $a1, GFX_PANEL_X
+    li   $a2, GFX_PANEL_ANCHO
+    li   $a3, GFX_NIV_ETIQ_Y
+    jal  gfx_texto_centrado_en
+    move $a0, $s0
+    li   $a1, GFX_PANEL_X
+    li   $a2, GFX_PANEL_ANCHO
+    li   $a3, GFX_NIV_NUM_Y
+    jal  draw_number_centered
+    restaurar_ra_s0
+    jr   $ra
+
+# ============================================================
+# PANTALLAS
+# ============================================================
+
+# ------------------------------------------------------------
+# gfx_dibujar_lineas
+# Dibuja varias lineas de texto centradas en la pantalla, una debajo
+# de otra, cada GFX_LINEA filas.
+# Argumentos: $a0 = tabla de direcciones de textos (termina en 0)
+#             $a1 = y de la primera linea
+# Retorno: ninguno
+# Preserva: $ra, $s0, $s1
+# ------------------------------------------------------------
+gfx_dibujar_lineas:
+    guardar_ra_s0_s1
+    move $s0, $a0                        # puntero a la tabla
+    move $s1, $a1                        # y actual
+gfx_dl_loop:
+    lw   $a0, 0($s0)
+    beq  $a0, $zero, gfx_dl_fin
+    li   $a1, 0
+    li   $a2, GFX_LADO
+    move $a3, $s1
+    jal  gfx_texto_centrado_en
+    addi $s0, $s0, 4
+    addi $s1, $s1, GFX_LINEA
+    j    gfx_dl_loop
+gfx_dl_fin:
+    restaurar_ra_s0_s1
+    jr   $ra
+
+# ------------------------------------------------------------
+# gfx_dibujar_base
+# Fondo del juego con puntaje y record: la base de las pantallas
+# de Game Over, pausa y victoria.
+# Argumentos: ninguno
+# Retorno: ninguno
+# Preserva: $ra
+# ------------------------------------------------------------
+gfx_dibujar_base:
+    guardar_ra
+    jal  draw_scene
+    jal  draw_score
+    jal  draw_high_score
+    restaurar_ra
+    jr   $ra
+
+# ------------------------------------------------------------
+# draw_game_over_screen
+# Argumentos: ninguno. Retorno: ninguno. Preserva: $ra
+# ------------------------------------------------------------
+.globl draw_game_over_screen
+draw_game_over_screen:
+    guardar_ra
+    jal  gfx_dibujar_base
+    la   $a0, gfx_lineas_game_over
+    li   $a1, GFX_MSJ_Y
+    jal  gfx_dibujar_lineas
+    restaurar_ra
+    jr   $ra
+
+# ------------------------------------------------------------
+# gfx_pantalla_pausa
+# Argumentos: ninguno. Retorno: ninguno. Preserva: $ra
+# ------------------------------------------------------------
+.globl gfx_pantalla_pausa
+gfx_pantalla_pausa:
+    guardar_ra
+    jal  gfx_dibujar_base
+    la   $a0, gfx_lineas_pausa
+    li   $a1, GFX_MSJ_Y
+    jal  gfx_dibujar_lineas
+    restaurar_ra
+    jr   $ra
+
+# ------------------------------------------------------------
+# gfx_pantalla_victoria
+# Argumentos: ninguno. Retorno: ninguno. Preserva: $ra
+# ------------------------------------------------------------
+.globl gfx_pantalla_victoria
+gfx_pantalla_victoria:
+    guardar_ra
+    jal  gfx_dibujar_base
+    la   $a0, gfx_lineas_victoria
+    li   $a1, GFX_MSJ_Y
+    jal  gfx_dibujar_lineas
+    restaurar_ra
+    jr   $ra
+
+# ------------------------------------------------------------
+# gfx_pantalla_menu
+# Pantalla negra con el titulo y la instruccion para empezar.
+# Argumentos: ninguno. Retorno: ninguno. Preserva: $ra
+# ------------------------------------------------------------
+.globl gfx_pantalla_menu
+gfx_pantalla_menu:
+    guardar_ra
+    jal  gfx_limpiar_pantalla
+    la   $a0, gfx_lineas_menu
+    li   $a1, GFX_MENU_Y
+    jal  gfx_dibujar_lineas
+    restaurar_ra
+    jr   $ra
+
+# ============================================================
+# DATOS DE TEXTO (solo lectura)
+# ============================================================
+.data
+gfx_t_pts:        .asciiz "PTS"
+gfx_t_nivel:      .asciiz "NIV"
+gfx_t_vacio:      .asciiz ""
+gfx_t_pausa:      .asciiz "PAUSA"
+gfx_t_pausa_p:    .asciiz "(P)"
+gfx_t_victoria:   .asciiz "VICTORIA"
+gfx_t_reinicia:   .asciiz "REINICIA"
+gfx_t_r:          .asciiz "(R)"
+gfx_t_tetris:     .asciiz "TETRIS"
+gfx_t_presiona:   .asciiz "PRESIONA"
+gfx_t_una:        .asciiz "UNA"
+gfx_t_tecla:      .asciiz "TECLA"
+
+.align 2
+# Cada tabla es una lista de direcciones de textos que termina en 0.
+gfx_lineas_game_over: .word GAME_TEXT, OVER_TEXT, RETRY_ONLY_TEXT, R_PARENS_TEXT, 0
+gfx_lineas_pausa:     .word gfx_t_pausa, gfx_t_pausa_p, 0
+gfx_lineas_victoria:  .word gfx_t_victoria, gfx_t_reinicia, gfx_t_r, 0
+gfx_lineas_menu:      .word gfx_t_tetris, gfx_t_vacio, gfx_t_presiona, gfx_t_una, gfx_t_tecla, 0
