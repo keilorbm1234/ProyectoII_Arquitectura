@@ -8,6 +8,8 @@
 .eqv TABLERO_BYTES    800    # CELDAS * 4
 .eqv NIVEL_MAX        10
 .eqv LINEAS_POR_NIVEL 5
+.eqv APARICION_X      3      # columna donde aparece cada pieza: (ANCHO - 4) / 2
+.eqv APARICION_Y      0      # fila donde aparece cada pieza
 .eqv TECLA_W 0x77   # 'w'
 .eqv TECLA_A 0x61   # 'a'
 .eqv TECLA_S 0x73   # 's'
@@ -66,9 +68,9 @@ COLOR_TEXT_ORANGE: .word 0x00FF8800
 
 # Game State Variables
 CURRENT_PIECE_X:
-    .word 10 # Updated starting X to be centered in the new play area
+    .word APARICION_X
 CURRENT_PIECE_Y:
-    .word 1
+    .word APARICION_Y
 # CURRENT_PIECE_ORIENTATION:
 #    .word 0              # 0 = horizontal, 1 = vertical
 
@@ -77,14 +79,16 @@ CURRENT_PIECE_ORIENTATION: .word 0 # 0, 1, 2, or 3
 CURRENT_PIECE_COLOR: .word 0
 SCORE:              .word 0
 LINES_CLEARED:      .word 0   # Total lines cleared
-LINES_PER_LEVEL:    .word 1   # Speed increases every 5 lines
-MIN_GRAVITY:        .word 100 # Fastest possible gravity in ms
 
 
 
 # --- NEW: Gravity Timer ---
 LAST_GRAVITY_TIME: .word 0      # Stores the system time of the last gravity drop
 GRAVITY_INTERVAL:  .word 1000   # Gravity happens every 1000 ms (1 second)
+NIVEL:          .word 1         # nivel actual (1 a NIVEL_MAX)
+SIGUIENTE_PIEZA: .word -1       # tipo de la proxima pieza (0-6); -1 = todavia no sorteada
+# Milisegundos entre cada caída, para los niveles 1 a 10
+TABLA_VELOCIDAD: .word 1000, 850, 700, 600, 500, 400, 320, 250, 180, 120
 
 ## NEW: Game state, high score, and UI text data
 HIGH_SCORE:     .word 0           # Persists across games

@@ -30,6 +30,12 @@ nuc_estado_jugando:
     jal  draw_scene              # fondo y bloques fijados
     jal  draw_score
     jal  draw_high_score
+    la   $t0, SIGUIENTE_PIEZA
+    lw   $a0, 0($t0)
+    jal  gfx_dibujar_siguiente   # vista previa de la proxima pieza
+    la   $t0, NIVEL
+    lw   $a0, 0($t0)
+    jal  gfx_dibujar_nivel       # "NIV" y el numero de nivel
 
     # --- Dibujar la pieza actual ---
     la   $s0, CURRENT_PIECE_TYPE
@@ -268,6 +274,19 @@ gravity_exit:
     jr   $ra
     
 #-----------------------------------------------------------------------------
+# nuc_pieza_aleatoria: sortea un tipo de pieza.
+# Retorna: $v0 = tipo al azar (0=I, 1=J, 2=L, 3=O, 4=S, 5=T, 6=Z)
+# Procedimiento hoja: solo modifica $v0, $a0 y $a1.
+#-----------------------------------------------------------------------------
+nuc_pieza_aleatoria:
+    li   $v0, 42                  # syscall 42: entero al azar en [0, $a1)
+    li   $a0, 0
+    li   $a1, 7
+    syscall                       # $a0 = 0 a 6
+    move $v0, $a0
+    jr   $ra
+
+#-----------------------------------------------------------------------------
 # spawn_new_piece: Randomly selects a new tetromino and resets its state.
 #                  Also checks for game over (if spawn position is blocked).
 #-----------------------------------------------------------------------------
@@ -280,11 +299,17 @@ spawn_new_piece:
     sw   $a2, 4($sp)
     sw   $v0, 0($sp)
 
-    # --- Get a random piece TYPE (0-6) ---
-    li   $v0, 42          # Random syscall
-    li   $a0, 0
-    li   $a1, 7
-    syscall               # $a0 = 0 to 6
+    # --- La pieza nueva es la que estaba como SIGUIENTE_PIEZA ---
+    la   $t3, SIGUIENTE_PIEZA
+    lw   $t4, 0($t3)
+    bgez $t4, spawn_hay_siguiente # -1 = primera pieza: todavia no hay siguiente
+    jal  nuc_pieza_aleatoria
+    move $t4, $v0
+spawn_hay_siguiente:
+    jal  nuc_pieza_aleatoria      # sortear la proxima pieza (Jorge la dibuja)
+    la   $t3, SIGUIENTE_PIEZA
+    sw   $v0, 0($t3)
+    move $a0, $t4                 # $a0 = tipo de la pieza nueva
 
     # Store the new piece type
     la   $t3, CURRENT_PIECE_TYPE
@@ -301,13 +326,11 @@ spawn_new_piece:
     sw   $t2, 0($t3)
 
     # --- Reset position and orientation ---
-    li   $t0, ANCHO                   # Starting X position: centrada (ANCHO / 2 - 2)
-    srl  $t0, $t0, 1
-    addi $t0, $t0, -2
+    li   $t0, APARICION_X             # columna de aparicion (datos.asm)
     la   $t1, CURRENT_PIECE_X
     sw   $t0, 0($t1)
 
-    li   $t0, 1                       # Starting Y position
+    li   $t0, APARICION_Y             # fila de aparicion (datos.asm)
     la   $t1, CURRENT_PIECE_Y
     sw   $t0, 0($t1)
 
@@ -357,45 +380,36 @@ spawn_done:
     jr   $ra
     
 #-----------------------------------------------------------------------------
-# update_speed: Checks if the game should level up and increases gravity.
+# update_speed: calcula el nivel según las líneas borradas y pone la
+# velocidad de ese nivel. Al completar NIVEL_MAX pasa a VICTORIA.
+# Procedimiento hoja: solo usa $t, no necesita pila.
 #-----------------------------------------------------------------------------
 update_speed:
-    # --- Prologue ---
-    addi $sp, $sp, -4
-    sw   $ra, 0($sp)
-
-    # --- Load required values ---
     la   $t0, LINES_CLEARED
-    lw   $t0, 0($t0)      # $t0 = total lines cleared
+    lw   $t0, 0($t0)              # $t0 = líneas totales
+    li   $t1, LINEAS_POR_NIVEL
+    div  $t0, $t1
+    mflo $t2                      # $t2 = niveles completados (líneas / 5)
 
-    la   $t1, LINES_PER_LEVEL
-    lw   $t1, 0($t1)      # $t1 = lines needed to level up (e.g., 5)
+    li   $t3, NIVEL_MAX
+    blt  $t2, $t3, us_seguir      # todavía no completa el nivel 10
+    li   $t0, EST_VICTORIA        # ¡ganó!
+    la   $t1, ESTADO
+    sw   $t0, 0($t1)
+    jr   $ra
 
-    # Check if LINES_CLEARED is 0 (can't divide by zero)
-    beq  $t0, $zero, update_speed_exit
+us_seguir:
+    addi $t2, $t2, 1              # nivel = completados + 1
+    la   $t3, NIVEL
+    sw   $t2, 0($t3)
 
-    # Check if LINES_CLEARED % LINES_PER_LEVEL == 0
-    rem  $t2, $t0, $t1    # $t2 = remainder
-    bne  $t2, $zero, update_speed_exit # If not a multiple, don't speed up
-
-    # --- It's time to speed up! ---
+    addi $t2, $t2, -1             # posición en la tabla = nivel - 1
+    sll  $t2, $t2, 2              # × 4 bytes por palabra
+    la   $t3, TABLA_VELOCIDAD
+    add  $t3, $t3, $t2
+    lw   $t4, 0($t3)              # $t4 = ms de este nivel
     la   $t3, GRAVITY_INTERVAL
-    lw   $t4, 0($t3)      # $t4 = current gravity interval
-
-    la   $t5, MIN_GRAVITY
-    lw   $t5, 0($t5)      # $t5 = minimum gravity interval
-
-    # Don't speed up if already at max speed
-    ble  $t4, $t5, update_speed_exit
-
-    # Decrease the interval (e.g., subtract 100ms)
-    addi $t4, $t4, -300
-    sw   $t4, 0($t3)      # Store the new, faster interval
-
-update_speed_exit:
-    # --- Epilogue ---
-    lw   $ra, 0($sp)
-    addi $sp, $sp, 4
+    sw   $t4, 0($t3)
     jr   $ra
 
 
@@ -507,10 +521,8 @@ restart_game:
     la   $t1, LINES_CLEARED
     sw   $t0, 0($t1)
 
-    # Reset gravity interval
-    li   $t0, 1000
-    la   $t1, GRAVITY_INTERVAL
-    sw   $t0, 0($t1)
+    # Líneas = 0, así que esto deja nivel 1 y su velocidad
+    jal  update_speed
 
     # Reset the gravity timer (prevents instant drop on restart)
     li   $v0, 30
@@ -525,6 +537,7 @@ restart_game:
 
     # Clear the playfield
     jal initialize_playfield
+    jal  spawn_new_piece          # pieza nueva sobre el tablero vacio
 
     # --- Epilogue ---
     lw   $ra, 0($sp)
