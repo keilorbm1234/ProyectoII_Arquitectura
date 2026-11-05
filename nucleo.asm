@@ -357,45 +357,36 @@ spawn_done:
     jr   $ra
     
 #-----------------------------------------------------------------------------
-# update_speed: Checks if the game should level up and increases gravity.
+# update_speed: calcula el nivel según las líneas borradas y pone la
+# velocidad de ese nivel. Al completar NIVEL_MAX pasa a VICTORIA.
+# Procedimiento hoja: solo usa $t, no necesita pila.
 #-----------------------------------------------------------------------------
 update_speed:
-    # --- Prologue ---
-    addi $sp, $sp, -4
-    sw   $ra, 0($sp)
-
-    # --- Load required values ---
     la   $t0, LINES_CLEARED
-    lw   $t0, 0($t0)      # $t0 = total lines cleared
+    lw   $t0, 0($t0)              # $t0 = líneas totales
+    li   $t1, LINEAS_POR_NIVEL
+    div  $t0, $t1
+    mflo $t2                      # $t2 = niveles completados (líneas / 5)
 
-    la   $t1, LINES_PER_LEVEL
-    lw   $t1, 0($t1)      # $t1 = lines needed to level up (e.g., 5)
+    li   $t3, NIVEL_MAX
+    blt  $t2, $t3, us_seguir      # todavía no completa el nivel 10
+    li   $t0, EST_VICTORIA        # ¡ganó!
+    la   $t1, ESTADO
+    sw   $t0, 0($t1)
+    jr   $ra
 
-    # Check if LINES_CLEARED is 0 (can't divide by zero)
-    beq  $t0, $zero, update_speed_exit
+us_seguir:
+    addi $t2, $t2, 1              # nivel = completados + 1
+    la   $t3, NIVEL
+    sw   $t2, 0($t3)
 
-    # Check if LINES_CLEARED % LINES_PER_LEVEL == 0
-    rem  $t2, $t0, $t1    # $t2 = remainder
-    bne  $t2, $zero, update_speed_exit # If not a multiple, don't speed up
-
-    # --- It's time to speed up! ---
+    addi $t2, $t2, -1             # posición en la tabla = nivel - 1
+    sll  $t2, $t2, 2              # × 4 bytes por palabra
+    la   $t3, TABLA_VELOCIDAD
+    add  $t3, $t3, $t2
+    lw   $t4, 0($t3)              # $t4 = ms de este nivel
     la   $t3, GRAVITY_INTERVAL
-    lw   $t4, 0($t3)      # $t4 = current gravity interval
-
-    la   $t5, MIN_GRAVITY
-    lw   $t5, 0($t5)      # $t5 = minimum gravity interval
-
-    # Don't speed up if already at max speed
-    ble  $t4, $t5, update_speed_exit
-
-    # Decrease the interval (e.g., subtract 100ms)
-    addi $t4, $t4, -300
-    sw   $t4, 0($t3)      # Store the new, faster interval
-
-update_speed_exit:
-    # --- Epilogue ---
-    lw   $ra, 0($sp)
-    addi $sp, $sp, 4
+    sw   $t4, 0($t3)
     jr   $ra
 
 
@@ -507,10 +498,8 @@ restart_game:
     la   $t1, LINES_CLEARED
     sw   $t0, 0($t1)
 
-    # Reset gravity interval
-    li   $t0, 1000
-    la   $t1, GRAVITY_INTERVAL
-    sw   $t0, 0($t1)
+    # Líneas = 0, así que esto deja nivel 1 y su velocidad
+    jal  update_speed
 
     # Reset the gravity timer (prevents instant drop on restart)
     li   $v0, 30
