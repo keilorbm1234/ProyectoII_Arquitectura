@@ -30,6 +30,12 @@ nuc_estado_jugando:
     jal  draw_scene              # fondo y bloques fijados
     jal  draw_score
     jal  draw_high_score
+    la   $t0, SIGUIENTE_PIEZA
+    lw   $a0, 0($t0)
+    jal  gfx_dibujar_siguiente   # vista previa de la proxima pieza
+    la   $t0, NIVEL
+    lw   $a0, 0($t0)
+    jal  gfx_dibujar_nivel       # "NIV" y el numero de nivel
 
     # --- Dibujar la pieza actual ---
     la   $s0, CURRENT_PIECE_TYPE
@@ -268,6 +274,19 @@ gravity_exit:
     jr   $ra
     
 #-----------------------------------------------------------------------------
+# nuc_pieza_aleatoria: sortea un tipo de pieza.
+# Retorna: $v0 = tipo al azar (0=I, 1=J, 2=L, 3=O, 4=S, 5=T, 6=Z)
+# Procedimiento hoja: solo modifica $v0, $a0 y $a1.
+#-----------------------------------------------------------------------------
+nuc_pieza_aleatoria:
+    li   $v0, 42                  # syscall 42: entero al azar en [0, $a1)
+    li   $a0, 0
+    li   $a1, 7
+    syscall                       # $a0 = 0 a 6
+    move $v0, $a0
+    jr   $ra
+
+#-----------------------------------------------------------------------------
 # spawn_new_piece: Randomly selects a new tetromino and resets its state.
 #                  Also checks for game over (if spawn position is blocked).
 #-----------------------------------------------------------------------------
@@ -280,11 +299,17 @@ spawn_new_piece:
     sw   $a2, 4($sp)
     sw   $v0, 0($sp)
 
-    # --- Get a random piece TYPE (0-6) ---
-    li   $v0, 42          # Random syscall
-    li   $a0, 0
-    li   $a1, 7
-    syscall               # $a0 = 0 to 6
+    # --- La pieza nueva es la que estaba como SIGUIENTE_PIEZA ---
+    la   $t3, SIGUIENTE_PIEZA
+    lw   $t4, 0($t3)
+    bgez $t4, spawn_hay_siguiente # -1 = primera pieza: todavia no hay siguiente
+    jal  nuc_pieza_aleatoria
+    move $t4, $v0
+spawn_hay_siguiente:
+    jal  nuc_pieza_aleatoria      # sortear la proxima pieza (Jorge la dibuja)
+    la   $t3, SIGUIENTE_PIEZA
+    sw   $v0, 0($t3)
+    move $a0, $t4                 # $a0 = tipo de la pieza nueva
 
     # Store the new piece type
     la   $t3, CURRENT_PIECE_TYPE
@@ -301,13 +326,11 @@ spawn_new_piece:
     sw   $t2, 0($t3)
 
     # --- Reset position and orientation ---
-    li   $t0, ANCHO                   # Starting X position: centrada (ANCHO / 2 - 2)
-    srl  $t0, $t0, 1
-    addi $t0, $t0, -2
+    li   $t0, APARICION_X             # columna de aparicion (datos.asm)
     la   $t1, CURRENT_PIECE_X
     sw   $t0, 0($t1)
 
-    li   $t0, 1                       # Starting Y position
+    li   $t0, APARICION_Y             # fila de aparicion (datos.asm)
     la   $t1, CURRENT_PIECE_Y
     sw   $t0, 0($t1)
 
@@ -514,6 +537,7 @@ restart_game:
 
     # Clear the playfield
     jal initialize_playfield
+    jal  spawn_new_piece          # pieza nueva sobre el tablero vacio
 
     # --- Epilogue ---
     lw   $ra, 0($sp)
