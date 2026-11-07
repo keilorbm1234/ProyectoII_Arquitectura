@@ -35,7 +35,8 @@ nuc_estado_jugando:
     jal  gfx_dibujar_siguiente   # vista previa de la proxima pieza
     la   $t0, NIVEL
     lw   $a0, 0($t0)
-    jal  gfx_dibujar_nivel       # "NIV" y el numero de nivel
+    jal  gfx_dibujar_nivel       # "NV" y el numero de nivel
+    jal  gfx_dibujar_total_lineas # "LN" y las lineas borradas
 
     # --- Dibujar la pieza actual ---
     la   $s0, CURRENT_PIECE_TYPE
