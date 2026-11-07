@@ -55,6 +55,7 @@ gl_victoria:
     jal  nuc_estado_victoria
 
 gl_fin:
+    jal  gfx_presentar            # mostrar en pantalla lo que cambio en este cuadro
     li   $v0, 32                  # esperar 100 ms
     li   $a0, 100
     syscall

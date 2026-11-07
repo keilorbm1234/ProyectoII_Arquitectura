@@ -137,9 +137,17 @@
 
 # gfx_pintar_celda(%x, %y, %color)
 #   Pinta la celda (x, y) con el color (los tres son registros).
-#   OJO: usa $t9 como temporal; no lo uses para %x, %y ni %color.
+#   DOBLE BUFFER: no escribe en la pantalla, escribe en gfx_sombra (una copia
+#   en memoria de las 32x32 celdas). La pantalla se actualiza con
+#   gfx_presentar, que copia SOLO las celdas que cambiaron. Asi no hay
+#   parpadeo y se escriben muy pocas celdas por ciclo.
+#   OJO: usa $t8 y $t9 como temporales; no los uses para %x, %y ni %color.
 .macro gfx_pintar_celda(%x, %y, %color)
-    gfx_dir_celda($t9, %x, %y)
+    sll   $t9, %y, GFX_LADO_LOG2     # y * 32
+    add   $t9, $t9, %x               # + x
+    sll   $t9, $t9, 2                # * 4 bytes
+    la    $t8, gfx_sombra
+    add   $t9, $t9, $t8              # direccion de la celda en el buffer
     sw    %color, 0($t9)
 .end_macro
 

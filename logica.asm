@@ -77,7 +77,7 @@ collision_check_loop:
     add  $s3, $s3, $s2         # $s3 = address of the cell in the playfield
     
     lw   $t0, 0($s3)           # Load the value from the playfield cell
-    beq  $t0, 1, collision_found   # If the cell is 1, it's occupied -> collision
+    bne  $t0, $zero, collision_found # Celda distinta de 0 (1..7 = tipo de pieza) -> ocupada
 
     # --- Continue to the next block ---
     addi $t7, $t7, 8           # Move to the next coordinate pair in shape data
@@ -136,8 +136,11 @@ freeze_loop:
     la   $t0, PLAYFIELD
     add  $t0, $t0, $s2         # $t0 = address of the cell in the playfield
     
-    # Mark the cell as occupied by storing a 1
-    li   $t1, 1
+    # Marcar la celda como ocupada guardando el tipo de pieza + 1 (1..7),
+    # para que graficos.asm pinte cada bloque con el color de su pieza
+    la   $t1, CURRENT_PIECE_TYPE
+    lw   $t1, 0($t1)
+    addi $t1, $t1, 1
     sw   $t1, 0($t0)
 
     # --- Continue to the next block ---

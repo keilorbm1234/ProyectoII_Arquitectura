@@ -9,15 +9,20 @@
 #      x: 0 1 .............. 12 13 14 ............... 30 31
 #  y=0   +----------------------------------------------+
 #        |  ENCABEZADO rojo:  "PTS" + puntaje            |   filas 0-4
-#        |                    "HI"  + record            |   filas 6-10
-#  y=11  | |      | TABLERO 10x20 |      | SIGUIENTE     |   verde, filas 11-18
+#        |                    "REC" + record           |   filas 6-10
+#  y=11  | |      | TABLERO 10x20 |      | SIGUIENTE     |   verde, filas 11-17
 #        | |      | (x=2..11)     |      |  (vista previa)|
-#  y=20  | |      |               |      | NIVEL         |   verde, filas 20-31
-#        | |      |               |      |  "NIV" + n    |
+#  y=19  | |      |               |      | "NV" + nivel   |   verde, filas 19-31
+#        | |      |               |      | "LN" + lineas  |
 #  y=31  | +------ piso ---------+                       |
 #        +----------------------------------------------+
 #   Pared izquierda en x=1, pared derecha en x=12, piso en y=31.
 #   Todo sale de las constantes .eqv de abajo y de ANCHO / ALTO.
+#
+# DOBLE BUFFER: todo el dibujo (gfx_pintar_celda) va a un buffer en memoria,
+# gfx_sombra. Al final de cada ciclo main.asm llama a gfx_presentar, que copia
+# a la pantalla solo las celdas que cambiaron: sin parpadeo y con muy pocas
+# escrituras al Bitmap Display.
 
 # ---------- Constantes de diseño ----------
 .eqv GFX_TABLERO_X      2     # columna de pantalla de la celda (0,0) del tablero
@@ -31,16 +36,21 @@
 
 .eqv GFX_PANEL_X        14    # primera columna del panel derecho
 .eqv GFX_PANEL_ANCHO    17    # ancho del panel derecho (columnas 14..30)
-.eqv GFX_SIG_Y0         11    # zona "siguiente": filas 11..18
-.eqv GFX_SIG_Y1         19    #   (limite exclusivo)
+.eqv GFX_SIG_Y0         11    # zona "siguiente": filas 11..17
+.eqv GFX_SIG_Y1         18    #   (limite exclusivo)
 .eqv GFX_SIG_X          20    # esquina de la vista previa (caja de 4 de ancho)
-.eqv GFX_SIG_Y          14    #   (las piezas ocupan 2 filas)
-.eqv GFX_NIV_Y0         20    # zona "nivel": filas 20..31
+.eqv GFX_SIG_Y          13    #   (las piezas ocupan 2 filas)
+.eqv GFX_NIV_Y0         19    # zona "nivel y lineas": filas 19..31
 .eqv GFX_NIV_Y1         32    #   (limite exclusivo)
-.eqv GFX_NIV_ETIQ_Y     21    # fila de la etiqueta "NIV"
-.eqv GFX_NIV_NUM_Y      27    # fila del numero de nivel
+.eqv GFX_NIV_Y          20    # fila de "NV" y el nivel
+.eqv GFX_LIN_Y          26    # fila de "LN" y las lineas borradas
+.eqv GFX_VAL_ETIQ_X     15    # x de las etiquetas NV y LN (2 letras = 7 de ancho)
+.eqv GFX_VAL_NUM_X      23    # zona de los numeros: columnas 23..30
+.eqv GFX_VAL_NUM_ANCHO  8
 
-.eqv GFX_MSJ_Y          8     # primera linea de los mensajes (Game Over, pausa...)
+.eqv GFX_MSJ_Y          12    # primera linea de los mensajes (Game Over, pausa, victoria)
+.eqv GFX_BANDA_Y0       11    # la banda negra de los mensajes cubre las filas 11..29
+.eqv GFX_BANDA_Y1       30    #   (limite exclusivo); deja visible el encabezado
 .eqv GFX_MENU_Y         1     # primera linea del menu
 
 # ---------- Constantes de texto y pantalla ----------
@@ -59,7 +69,7 @@
 
 # ------------------------------------------------------------
 # gfx_limpiar_pantalla
-# Pinta toda la pantalla de negro.
+# Pinta de negro todo el buffer de dibujo (se ve al llamar gfx_presentar).
 # Argumentos: ninguno
 # Retorno: ninguno
 # Preserva: todo salvo $t0-$t2 (hoja)
@@ -67,13 +77,39 @@
 .globl gfx_limpiar_pantalla
 gfx_limpiar_pantalla:
     cargar_global($t1, COLOR_BLACK)
-    li   $t0, GFX_BASE
+    la   $t0, gfx_sombra
     li   $t2, GFX_PANT_CELDAS
 gfx_lp_loop:
     sw   $t1, 0($t0)
     addi $t0, $t0, 4
     addi $t2, $t2, -1
     bne  $t2, $zero, gfx_lp_loop
+    jr   $ra
+
+# ------------------------------------------------------------
+# gfx_presentar
+# Copia a la pantalla las celdas del buffer que son distintas de las
+# que ya hay en pantalla. Llamar UNA vez al final de cada ciclo del juego
+# (en main.asm, en gl_fin). Sin esta llamada no se ve nada.
+# Argumentos: ninguno
+# Retorno: ninguno
+# Preserva: todo salvo $t0-$t4 (hoja)
+# ------------------------------------------------------------
+.globl gfx_presentar
+gfx_presentar:
+    la   $t0, gfx_sombra                 # buffer de dibujo
+    li   $t1, GFX_BASE                   # pantalla
+    li   $t2, GFX_PANT_CELDAS
+gfx_pr_loop:
+    lw   $t3, 0($t0)
+    lw   $t4, 0($t1)
+    beq  $t3, $t4, gfx_pr_igual          # sin cambios: no escribir
+    sw   $t3, 0($t1)
+gfx_pr_igual:
+    addi $t0, $t0, 4
+    addi $t1, $t1, 4
+    addi $t2, $t2, -1
+    bne  $t2, $zero, gfx_pr_loop
     jr   $ra
 
 # ------------------------------------------------------------
@@ -139,7 +175,8 @@ gfx_cc_fin:
 # ------------------------------------------------------------
 # gfx_dibujar_bloques_fijos
 # Pinta las celdas ocupadas del tablero (PLAYFIELD, ANCHO x ALTO,
-# indice = fila * ANCHO + columna; 0 = vacia).
+# indice = fila * ANCHO + columna). Cada celda guarda 0 (vacia) o el
+# tipo de pieza + 1 (1..7), y se pinta con el color de esa pieza.
 # Argumentos: ninguno
 # Retorno: ninguno
 # Preserva: $ra, $s0-$s3
@@ -147,13 +184,18 @@ gfx_cc_fin:
 gfx_dibujar_bloques_fijos:
     guardar_ra_s0_s1_s2_s3
     la   $s0, PLAYFIELD                  # puntero a la celda actual
-    cargar_global($s3, COLOR_FROZEN_BLOCK)
     li   $s1, 0                          # fila
 gfx_bf_fila:
     li   $s2, 0                          # columna
 gfx_bf_col:
     lw   $t0, 0($s0)
     beq  $t0, $zero, gfx_bf_vacia
+    addi $t0, $t0, -1                    # tipo de pieza (0..6)
+    sll  $t0, $t0, 2
+    la   $t3, ALL_COLORS_TABLE
+    add  $t3, $t3, $t0
+    lw   $t3, 0($t3)                     # direccion de la variable de color
+    lw   $s3, 0($t3)                     # $s3 = color de esa pieza
     addi $t1, $s2, GFX_TABLERO_X         # x en pantalla
     addi $t2, $s1, GFX_TABLERO_Y         # y en pantalla
     gfx_pintar_celda($t1, $t2, $s3)
@@ -514,7 +556,7 @@ draw_score:
 
 # ------------------------------------------------------------
 # draw_high_score
-# Dibuja "HI" y el record (HIGH_SCORE) en el encabezado.
+# Dibuja "REC" y el record (HIGH_SCORE) en el encabezado.
 # Argumentos: ninguno
 # Retorno: ninguno
 # Preserva: $ra
@@ -522,7 +564,7 @@ draw_score:
 .globl draw_high_score
 draw_high_score:
     guardar_ra
-    la   $a0, HI_TEXT
+    la   $a0, gfx_t_rec
     li   $a1, GFX_ETIQ_X
     li   $a2, GFX_HI_Y
     jal  draw_string
@@ -536,7 +578,7 @@ draw_high_score:
 
 # ------------------------------------------------------------
 # gfx_dibujar_nivel
-# Dibuja "NIV" y el numero de nivel en la zona verde de abajo.
+# Dibuja "NV" y el numero de nivel en la zona verde de abajo.
 # Argumentos: $a0 = nivel
 # Retorno: ninguno
 # Preserva: $ra, $s0
@@ -546,16 +588,37 @@ gfx_dibujar_nivel:
     guardar_ra_s0
     move $s0, $a0
     la   $a0, gfx_t_nivel
-    li   $a1, GFX_PANEL_X
-    li   $a2, GFX_PANEL_ANCHO
-    li   $a3, GFX_NIV_ETIQ_Y
-    jal  gfx_texto_centrado_en
+    li   $a1, GFX_VAL_ETIQ_X
+    li   $a2, GFX_NIV_Y
+    jal  draw_string
     move $a0, $s0
-    li   $a1, GFX_PANEL_X
-    li   $a2, GFX_PANEL_ANCHO
-    li   $a3, GFX_NIV_NUM_Y
+    li   $a1, GFX_VAL_NUM_X
+    li   $a2, GFX_VAL_NUM_ANCHO
+    li   $a3, GFX_NIV_Y
     jal  draw_number_centered
     restaurar_ra_s0
+    jr   $ra
+
+# ------------------------------------------------------------
+# gfx_dibujar_total_lineas
+# Dibuja "LN" y el total de lineas borradas (LINES_CLEARED).
+# Argumentos: ninguno
+# Retorno: ninguno
+# Preserva: $ra
+# ------------------------------------------------------------
+.globl gfx_dibujar_total_lineas
+gfx_dibujar_total_lineas:
+    guardar_ra
+    la   $a0, gfx_t_lineas
+    li   $a1, GFX_VAL_ETIQ_X
+    li   $a2, GFX_LIN_Y
+    jal  draw_string
+    cargar_global($a0, LINES_CLEARED)
+    li   $a1, GFX_VAL_NUM_X
+    li   $a2, GFX_VAL_NUM_ANCHO
+    li   $a3, GFX_LIN_Y
+    jal  draw_number_centered
+    restaurar_ra
     jr   $ra
 
 # ============================================================
@@ -591,8 +654,8 @@ gfx_dl_fin:
 
 # ------------------------------------------------------------
 # gfx_dibujar_base
-# Fondo del juego con puntaje y record: la base de las pantallas
-# de Game Over, pausa y victoria.
+# Fondo del juego con puntaje, record, nivel y lineas: la base de las
+# pantallas de Game Over, pausa y victoria.
 # Argumentos: ninguno
 # Retorno: ninguno
 # Preserva: $ra
@@ -602,7 +665,49 @@ gfx_dibujar_base:
     jal  draw_scene
     jal  draw_score
     jal  draw_high_score
+    cargar_global($a0, NIVEL)
+    jal  gfx_dibujar_nivel
+    jal  gfx_dibujar_total_lineas
     restaurar_ra
+    jr   $ra
+
+# ------------------------------------------------------------
+# gfx_banda_negra
+# Pinta de negro, de lado a lado, las filas GFX_BANDA_Y0 .. GFX_BANDA_Y1-1.
+# Sirve de fondo para que el texto de los mensajes se lea bien.
+# Argumentos: ninguno
+# Retorno: ninguno
+# Preserva: todo salvo $t0, $t1, $t3 y $t9 (hoja)
+# ------------------------------------------------------------
+gfx_banda_negra:
+    cargar_global($t3, COLOR_BLACK)
+    li   $t1, GFX_BANDA_Y0               # fila
+gfx_bn_y:
+    li   $t0, 0                          # columna
+gfx_bn_x:
+    gfx_pintar_celda($t0, $t1, $t3)
+    addi $t0, $t0, 1
+    blt  $t0, GFX_LADO, gfx_bn_x
+    addi $t1, $t1, 1
+    blt  $t1, GFX_BANDA_Y1, gfx_bn_y
+    jr   $ra
+
+# ------------------------------------------------------------
+# gfx_pantalla_mensaje
+# Fondo del juego, banda negra y un mensaje de varias lineas centradas.
+# Argumentos: $a0 = tabla de textos (termina en 0)
+# Retorno: ninguno
+# Preserva: $ra, $s0
+# ------------------------------------------------------------
+gfx_pantalla_mensaje:
+    guardar_ra_s0
+    move $s0, $a0
+    jal  gfx_dibujar_base
+    jal  gfx_banda_negra
+    move $a0, $s0
+    li   $a1, GFX_MSJ_Y
+    jal  gfx_dibujar_lineas
+    restaurar_ra_s0
     jr   $ra
 
 # ------------------------------------------------------------
@@ -612,10 +717,8 @@ gfx_dibujar_base:
 .globl draw_game_over_screen
 draw_game_over_screen:
     guardar_ra
-    jal  gfx_dibujar_base
     la   $a0, gfx_lineas_game_over
-    li   $a1, GFX_MSJ_Y
-    jal  gfx_dibujar_lineas
+    jal  gfx_pantalla_mensaje
     restaurar_ra
     jr   $ra
 
@@ -626,10 +729,8 @@ draw_game_over_screen:
 .globl gfx_pantalla_pausa
 gfx_pantalla_pausa:
     guardar_ra
-    jal  gfx_dibujar_base
     la   $a0, gfx_lineas_pausa
-    li   $a1, GFX_MSJ_Y
-    jal  gfx_dibujar_lineas
+    jal  gfx_pantalla_mensaje
     restaurar_ra
     jr   $ra
 
@@ -640,10 +741,8 @@ gfx_pantalla_pausa:
 .globl gfx_pantalla_victoria
 gfx_pantalla_victoria:
     guardar_ra
-    jal  gfx_dibujar_base
     la   $a0, gfx_lineas_victoria
-    li   $a1, GFX_MSJ_Y
-    jal  gfx_dibujar_lineas
+    jal  gfx_pantalla_mensaje
     restaurar_ra
     jr   $ra
 
@@ -663,11 +762,20 @@ gfx_pantalla_menu:
     jr   $ra
 
 # ============================================================
-# DATOS DE TEXTO (solo lectura)
+# DATOS
 # ============================================================
 .data
+.align 2
+# Buffer de dibujo: una copia en memoria de las 32x32 celdas de la pantalla.
+# Todo se dibuja aqui y gfx_presentar copia a la pantalla lo que cambio.
+# Empieza en 0 (negro), igual que la pantalla al arrancar.
+gfx_sombra:       .space 4096
 gfx_t_pts:        .asciiz "PTS"
-gfx_t_nivel:      .asciiz "NIV"
+gfx_t_rec:        .asciiz "REC"
+gfx_t_nivel:      .asciiz "NV"
+gfx_t_lineas:     .asciiz "LN"
+gfx_t_fin_del:    .asciiz "FIN DEL"
+gfx_t_juego:      .asciiz "JUEGO"
 gfx_t_vacio:      .asciiz ""
 gfx_t_pausa:      .asciiz "PAUSA"
 gfx_t_pausa_p:    .asciiz "(P)"
@@ -681,7 +789,7 @@ gfx_t_tecla:      .asciiz "TECLA"
 
 .align 2
 # Cada tabla es una lista de direcciones de textos que termina en 0.
-gfx_lineas_game_over: .word GAME_TEXT, OVER_TEXT, RETRY_ONLY_TEXT, R_PARENS_TEXT, 0
+gfx_lineas_game_over: .word gfx_t_fin_del, gfx_t_juego, gfx_t_r, 0
 gfx_lineas_pausa:     .word gfx_t_pausa, gfx_t_pausa_p, 0
 gfx_lineas_victoria:  .word gfx_t_victoria, gfx_t_reinicia, gfx_t_r, 0
 gfx_lineas_menu:      .word gfx_t_tetris, gfx_t_vacio, gfx_t_presiona, gfx_t_una, gfx_t_tecla, 0
