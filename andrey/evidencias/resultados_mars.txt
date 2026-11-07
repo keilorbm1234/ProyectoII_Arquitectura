@@ -1,4 +1,6 @@
 Registro: 2026-10-31 (America/Guatemala).
+Registro histórico: los estados pendientes de esta ejecución corresponden a esa fecha.
+Actualización del 2026-11-06: resultados_2026-11-06.txt y CAPTURAS_PENDIENTES.md.
 Simulador: MARS 4.5 local, Java 8; delayed branching desactivado.
 Rama: andrey/logica-tablero-10x20.
 Alcance: suites aisladas de logica/piezas y comprobación cruzada de draw_scene.

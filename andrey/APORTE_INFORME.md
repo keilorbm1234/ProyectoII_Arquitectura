@@ -1,4 +1,4 @@
-# Borrador del aporte de Andrey al informe
+# Aporte de Andrey al informe
 
 **Proyecto 2 — EIF205 Arquitectura de Computadoras**
 
@@ -6,7 +6,7 @@
 
 **Responsable del aporte: Andrey**
 
-**Estado: borrador para revisar, completar con capturas y validar tras la integración.**
+**Estado al 2026-11-06: aporte individual documentado y verificado de forma aislada. Validación conjunta pendiente de integración.**
 
 ## Alcance
 
@@ -56,7 +56,15 @@ Se ejecutaron tres suites aisladas en MARS 4.5, con delayed branching desactivad
 
 Las tres suites pasaron. Se probaron ambas paredes, piso, posiciones negativas, celdas ocupadas con los siete IDs, apariciones bloqueadas, fijación rechazada sin escrituras parciales, eliminación de una a cuatro líneas, limpieza superior y conservación de registros y pila. También se recorrieron las siete piezas en sus cuatro orientaciones y los puntajes de 0–4 líneas en los niveles 1–10.
 
-Los datos de prueba incluyen un tablero de exactamente 200 palabras con centinelas adyacentes. Las capturas de registros, memoria y consola se encuentran pendientes de tomar según el plan de pruebas. No se presentan imágenes ni resultados de una partida completa que no se haya ejecutado.
+Los datos de prueba incluyen un tablero de exactamente 200 palabras con centinelas adyacentes. El 2026-11-06 se volvieron a ejecutar las tres suites y se exportaron 29 vistas de los componentes reales de MARS mediante `JFrame.printAll`. Son exportaciones de la ventana después de ejecutar el código, no capturas del escritorio ni dibujos de valores esperados. Cada vista de lógica incluye un registro de sus retornos, registros y 200 celdas. El [índice de evidencias](evidencias/CAPTURAS_PENDIENTES.md) permite consultar las imágenes, los registros y las consolas finales.
+
+Ejemplos de las evidencias obtenidas:
+
+![Colisión con la pared izquierda: X candidata -1 y retorno 1](evidencias/capturas/P02_pared_izquierda.png)
+
+![Wall kick izquierdo: X final 7, orientación 2 y corrimiento -1](evidencias/capturas/P06_kick_izquierda.png)
+
+![Jugada de cuatro líneas a nivel 2: 1600 puntos y total 2834](evidencias/capturas/P14_finalizacion_unica.png)
 
 ## Errores corregidos y prueba cruzada
 
@@ -69,12 +77,18 @@ Los datos de prueba incluyen un tablero de exactamente 200 palabras con centinel
 | Fijación sin validación completa propia | Posibles escrituras inválidas o parciales | Validación previa de posición y tipo. |
 | Puntaje por cada línea aislada | Incumplimiento de premios por jugada | Conteo acumulado y cálculo separado con nivel recibido. |
 
-La bitácora contiene la fecha de registro, la evidencia y el estado del commit de cada corrección. Los commits siguen pendientes y no se les asignaron identificadores ficticios.
+La bitácora contiene la fecha de registro, la evidencia y el commit de cada corrección. Las ocho correcciones de lógica están incluidas en el commit real `f74780c`, del 2026-11-01. Los cambios de otros módulos continúan pendientes y no se les atribuye ese commit.
 
-Como prueba cruzada se ejecutó `draw_scene` de Jorge sin modificarlo. Se detectó que no conservaba `$s0–$s2` y que leía para el dibujo un marcador colocado en el índice 200, fuera del tablero lógico nuevo. Los dos resultados fallidos se registraron para su responsable. La adaptación y la revalidación de esos puntos están pendientes.
+Como primera prueba cruzada se ejecutó `draw_scene` de la base antigua de Jorge sin modificarlo. Se detectó que no conservaba `$s0–$s2` y que dibujaba un marcador colocado en el índice 200, fuera del tablero lógico nuevo. Ambos resultados quedaron registrados antes de consultar los avances remotos del equipo.
 
-## Conclusión provisional
+Estos dos hallazgos corresponden a la base local antigua. Al consultar el main remoto `d4c1810` el 2026-11-06, ambos comportamientos ya estaban adaptados. Se armó un candidato temporal con los módulos actuales del equipo y los archivos de lógica/piezas de Andrey, sin editar sus módulos. El main candidato ensambló y la nueva prueba cruzada obtuvo 36 de 43 comparaciones aprobadas. Las siete fallidas muestran que los IDs todavía se dibujan con el mismo color; el detalle está en [cruce_referencia_2026-11-06.txt](evidencias/cruce_referencia_2026-11-06.txt).
+
+Las 27 comparaciones del contrato lógica/núcleo pasaron: caída y fijación sin puntaje duplicado, cuenta de cuatro líneas, premio con nivel explícito, acumulado sin recuento y actualización del nivel. También pasaron las comprobaciones del nivel en 0, 4, 5, 6, 45, 49 y 50 líneas y la transición a victoria en 50. Son llamadas directas al `update_speed` real de Keilor; no prueban que el teclado o el aterrizaje del núcleo ya invoquen los procedimientos nuevos. Se añadieron dos vistas de esta ejecución: hay **31 imágenes** en total.
+
+## Conclusión de mi trabajo
 
 La lógica quedó organizada alrededor de un tablero como fuente de verdad y de procedimientos con argumentos, retornos y registros documentados. Las validaciones antes de acceder a memoria, la fijación completa y la conservación de los identificadores permiten comprobar el comportamiento sin depender del dibujo.
 
-Los resultados aislados respaldan el funcionamiento de las partes implementadas. El cierre del proyecto requiere conectar los contratos desde el núcleo, acordar la regla de nivel usada para puntuar, adaptar los gráficos y repetir las pruebas en una partida completa. Las capturas y los resultados de esa integración deberán añadirse al informe cuando existan.
+Mi aporte deja implementadas las funciones obligatorias de lógica y conserva las formas de las piezas, con 235 escenarios aprobados, evidencia visual del simulador y una prueba cruzada registrada. La [guía de defensa](DEFENSA.md) explica las decisiones y las instrucciones utilizadas.
+
+El cierre del proyecto requiere conectar las llamadas desde el núcleo, acordar la regla de nivel usada para puntuar, seleccionar los colores de IDs en gráficos y repetir las pruebas en una partida completa. El main candidato actualizado ensambla; el error por dimensiones se mantiene solo en la base antigua conservada en la rama local. Las pruebas con módulos actuales permiten cerrar los hallazgos anteriores en esa referencia y concretar lo que aún necesita coordinación. No se presenta la partida conjunta como aprobada.
