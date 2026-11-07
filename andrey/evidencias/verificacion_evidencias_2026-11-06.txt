@@ -1,0 +1,9 @@
+Fecha: 2026-11-06 (America/Guatemala).
+Comprobaciones reales realizadas sobre los archivos exportados:
+- 28 registros de lógica contienen s0-s7=1000..1007, sp igual a saved_sp y ambos centinelas intactos.
+- Cada uno contiene 20 filas de 10 valores: tablero completo de 200 celdas.
+- 31 PNG tienen dimensiones de al menos 800 x 500 y contenido no uniforme en el muestreo de píxeles.
+- Todos los enlaces locales de los documentos de andrey/ resuelven a archivos existentes.
+- La comparación de los seis módulos de Keilor/Jorge con cc9cc2f no muestra cambios en esta rama.
+- Se revisaron visualmente vistas representativas de inicialización, puntaje, wall kick, finalización y pruebas cruzadas.
+Estos controles validan las evidencias exportadas; no sustituyen las suites de MARS ni una partida integrada.

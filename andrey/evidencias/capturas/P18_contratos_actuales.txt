@@ -1,0 +1,50 @@
+Export: 2026-11-06T19:31:41.140-06:00[America/Guatemala]
+Source wrapper: C:\Users\Andre\AppData\Local\Temp\andrey-integracion-88e5fa4999a84d9b9fd2745fd285b97f\cruce_actual_main.asm
+Method: JFrame.printAll; real MARS execution, not a desktop screenshot.
+
+XR01 preserve s0: PASS
+XR01 preserve s1: PASS
+XR01 preserve s2: PASS
+XR01 preserve s3: PASS
+XR01 preserve s4: PASS
+XR01 preserve s5: PASS
+XR01 preserve s6: PASS
+XR01 preserve s7: PASS
+XR02 floor is not overwritten by the first out-of-board word: PASS
+XR03 frozen color ID 1: FAIL actual=2278750 expected=65535
+XR03 frozen color ID 2: FAIL actual=2278750 expected=255
+XR03 frozen color ID 3: FAIL actual=2278750 expected=16753920
+XR03 frozen color ID 4: FAIL actual=2278750 expected=16776960
+XR03 frozen color ID 5: FAIL actual=2278750 expected=65280
+XR03 frozen color ID 6: FAIL actual=2278750 expected=8388736
+XR03 frozen color ID 7: FAIL actual=2278750 expected=16711680
+XR10 hard drop distance: PASS
+XR10 hard drop status: PASS
+XR10 drop leaves score unchanged: PASS
+XR10 drop leaves lines unchanged: PASS
+XR11 four-line count: PASS
+XR11 lines accumulated once: PASS
+XR11 clearing leaves score unchanged: PASS
+XR12 four-line award at supplied level 2: PASS
+XR12 score total: PASS
+XR12 scoring does not recount lines: PASS
+XR13 real core level after 11 lines: PASS
+XR13 real core gravity at level 3: PASS
+XR13 move continues: PASS
+XR14 level at 0 lines: PASS
+XR14 state at 0 lines: PASS
+XR14 level at 4 lines: PASS
+XR14 state at 4 lines: PASS
+XR14 level at 5 lines: PASS
+XR14 state at 5 lines: PASS
+XR14 level at 6 lines: PASS
+XR14 state at 6 lines: PASS
+XR14 level at 45 lines: PASS
+XR14 state at 45 lines: PASS
+XR14 level at 49 lines: PASS
+XR14 state at 49 lines: PASS
+XR14 level at 50 lines: PASS
+XR14 state at 50 lines: PASS
+XR_SUMMARY checks=43 failures=7
+
+-- program is finished running --

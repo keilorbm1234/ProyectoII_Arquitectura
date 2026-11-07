@@ -1,0 +1,48 @@
+{
+  "date": "2026-11-06",
+  "repository": "keilorbm1234/ProyectoII_Arquitectura",
+  "commit": "d4c181045f870ede460be3f0c2591b48f41d33f2",
+  "url": "https://github.com/keilorbm1234/ProyectoII_Arquitectura/commit/d4c181045f870ede460be3f0c2591b48f41d33f2",
+  "files": [
+    {
+      "path": "main.asm",
+      "git_blob_sha": "318cced473371e2d7dd0e0c2e48ccdd54f7f92a8",
+      "url": "https://github.com/keilorbm1234/ProyectoII_Arquitectura/blob/d4c181045f870ede460be3f0c2591b48f41d33f2/main.asm"
+    },
+    {
+      "path": "datos.asm",
+      "git_blob_sha": "5a6d4f33b5edce2fe9070a9ed4bf74df894c10b2",
+      "url": "https://github.com/keilorbm1234/ProyectoII_Arquitectura/blob/d4c181045f870ede460be3f0c2591b48f41d33f2/datos.asm"
+    },
+    {
+      "path": "nucleo.asm",
+      "git_blob_sha": "db9b459039bb5da2a366fd0fce97b143e9cac719",
+      "url": "https://github.com/keilorbm1234/ProyectoII_Arquitectura/blob/d4c181045f870ede460be3f0c2591b48f41d33f2/nucleo.asm"
+    },
+    {
+      "path": "logica.asm",
+      "git_blob_sha": "93167cab5c6d51e07a34d95efded9ba86b3b171a",
+      "url": "https://github.com/keilorbm1234/ProyectoII_Arquitectura/blob/d4c181045f870ede460be3f0c2591b48f41d33f2/logica.asm"
+    },
+    {
+      "path": "graficos.asm",
+      "git_blob_sha": "ccde5305a3d33def3b53dd45356099501e9e83c1",
+      "url": "https://github.com/keilorbm1234/ProyectoII_Arquitectura/blob/d4c181045f870ede460be3f0c2591b48f41d33f2/graficos.asm"
+    },
+    {
+      "path": "macros.asm",
+      "git_blob_sha": "35911b88f368d80f2db967c0f18eedef3da8492e",
+      "url": "https://github.com/keilorbm1234/ProyectoII_Arquitectura/blob/d4c181045f870ede460be3f0c2591b48f41d33f2/macros.asm"
+    },
+    {
+      "path": "fuente.asm",
+      "git_blob_sha": "cc4c53d8b07bc06e7acc2ee7e8d84132eb460f32",
+      "url": "https://github.com/keilorbm1234/ProyectoII_Arquitectura/blob/d4c181045f870ede460be3f0c2591b48f41d33f2/fuente.asm"
+    },
+    {
+      "path": "piezas.asm",
+      "git_blob_sha": "d502b36442f79cdb04f2487b1b47823269853eb8",
+      "url": "https://github.com/keilorbm1234/ProyectoII_Arquitectura/blob/d4c181045f870ede460be3f0c2591b48f41d33f2/piezas.asm"
+    }
+  ]
+}

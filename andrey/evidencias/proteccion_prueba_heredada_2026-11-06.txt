@@ -1,0 +1,7 @@
+Fecha: 2026-11-06 (America/Guatemala).
+Protección del driver heredado al usar los módulos de d4c1810 con tablero de 800 bytes.
+Driver real copiado sin editar al candidato temporal; incluye todas sus dependencias.
+Debe terminar antes de limpiar 512 palabras.
+Código real: 2
+Salida real:
+SKIP: legacy probe requires the original 512-word allocation; use probar_referencia.ps1.

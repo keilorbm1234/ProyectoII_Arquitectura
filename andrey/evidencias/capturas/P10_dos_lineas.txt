@@ -1,0 +1,59 @@
+2026-11-06T19:19:45.419-06:00[America/Guatemala] | etapa1.asm | caso 35 | despues de check_and_clear_lines
+PC=0x00407620 v0=2 v1=0 a1=123456789 a2=3433
+X=3 Y=0 tipo=0 orientacion=0 SCORE=0 LINES=2 HIGH=0
+PLAYFIELD=0x10010044 centinelas=123456789/123456789
+Capture method: JFrame.printAll export of actual MARS components after execution.
+This is a window-view export, not a desktop screenshot; no values or pixels are retouched.
+r0=0
+r1=268500992
+r2=2
+r3=0
+r4=19
+r5=123456789
+r6=3433
+r7=0
+r8=0
+r9=2
+r10=268501060
+r11=0
+r12=0
+r13=1
+r14=3
+r15=268502360
+r16=1000
+r17=1001
+r18=1002
+r19=1003
+r20=1004
+r21=1005
+r22=1006
+r23=1007
+r24=268501860
+r25=0
+r26=0
+r27=0
+r28=268468224
+r29=2147479548
+r30=0
+r31=4224544
+saved_sp=2147479548
+row 0: 0 0 0 0 0 0 0 0 0 0
+row 1: 0 0 0 0 0 0 0 0 0 0
+row 2: 7 0 0 0 0 0 0 0 0 0
+row 3: 0 0 0 0 0 0 0 0 0 0
+row 4: 0 0 0 0 0 0 0 0 0 0
+row 5: 0 0 0 0 0 0 0 0 0 0
+row 6: 0 0 0 0 0 0 0 0 0 0
+row 7: 0 0 0 0 0 0 0 0 0 0
+row 8: 0 0 0 0 0 0 0 0 0 0
+row 9: 0 0 0 0 0 0 0 0 0 0
+row 10: 0 0 0 0 0 0 0 0 0 0
+row 11: 0 0 0 0 0 0 0 0 0 0
+row 12: 0 0 0 0 0 0 0 0 0 0
+row 13: 0 0 0 0 0 0 0 0 0 0
+row 14: 0 0 0 0 0 0 0 0 0 0
+row 15: 0 0 0 0 0 0 0 0 0 0
+row 16: 0 0 0 0 0 0 0 0 0 0
+row 17: 0 0 0 0 0 0 0 0 0 0
+row 18: 0 0 0 0 0 0 0 0 0 0
+row 19: 0 0 0 0 0 0 0 0 0 0

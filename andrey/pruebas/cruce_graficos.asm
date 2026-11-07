@@ -5,7 +5,9 @@
 # The pixel probe matches the current layout: legacy index 200 -> (11,12).
 # If Jorge changes the layout, coordinate an updated probe before reusing XJ02.
 # Exit 0 means both checks passed; exit 1 means an integration issue was found.
+.include "../../macros.asm"
 .include "../../datos.asm"
+.include "../../piezas.asm"
 .include "../../fuente.asm"
 .data
 .align 2
@@ -25,9 +27,24 @@ log_cross_s2_msg: .asciiz "observed s2 (expected 1002): "
 log_cross_expected_msg: .asciiz "pixel expected background: "
 log_cross_actual_msg: .asciiz "pixel observed: "
 log_cross_newline: .asciiz "\n"
+log_cross_not_legacy: .asciiz "SKIP: legacy probe requires the original 512-word allocation; use probar_referencia.ps1.\n"
 .text
 .globl main
 main:
+    # Refuse the legacy 512-word preparation after production shrinks to 200 words.
+    # GAME_TEXT immediately follows PLAYFIELD in both known data versions.
+    la   $t0, GAME_TEXT
+    la   $t1, PLAYFIELD
+    subu $t0, $t0, $t1
+    li   $t1, 2048
+    bge  $t0, $t1, log_cross_legacy_ready
+    la   $a0, log_cross_not_legacy
+    li   $v0, 4
+    syscall
+    li   $a0, 2
+    li   $v0, 17
+    syscall
+log_cross_legacy_ready:
     # Clear the real legacy allocation, then mark the first non-playable index.
     la   $t0, PLAYFIELD
     li   $t1, 512
