@@ -67,7 +67,7 @@ nuc_estado_jugando:
     addi $sp, $sp, 12
     jr   $ra
 #-----------------------------------------------------------------------------
-# handle_input: Handles movement and safe rotation.
+# handle_input: W rota (wall kick), A/D mueven, S baja, espacio cae, P pausa, Q sale.
 #-----------------------------------------------------------------------------
 handle_input:
     # --- Prologue ---
@@ -102,31 +102,10 @@ handle_input:
     add  $a0, $t1, $t0
     lw   $a0, 0($a0)
 
-    # --- Check for 'w' (rotate) ---
+    # --- W: rotar con corrimiento contra la pared (logica de Andrey) ---
     li   $t0, TECLA_W
     bne  $t5, $t0, check_a
-
-    # Calculate next orientation: (current + 1) % 4
-    addi $s4, $s1, 1
-    li   $t0, 4
-    rem  $s4, $s4, $t0 # $s4 = next_orientation
-
-    # Get the shape data for the NEXT orientation
-    sll  $t0, $s0, 2
-    la   $t1, MASTER_SHAPE_TABLE
-    add  $t1, $t1, $t0
-    lw   $t1, 0($t1)
-    sll  $t0, $s4, 2
-    add  $a0, $t1, $t0
-    lw   $a0, 0($a0) # $a0 now points to the shape data for the ROTATED piece
-
-    # Check for collision with the rotated shape
-    jal  check_collision
-    bne  $v0, $zero, input_done      # If collision, do nothing
-    
-    # No collision, so update the orientation
-    la   $t0, CURRENT_PIECE_ORIENTATION
-    sw   $s4, 0($t0)
+    jal  log_rotate_with_kick     # prueba X, X-1 y X+1; guarda X y orientacion si puede
     j    input_done
 
 check_a:
@@ -149,7 +128,7 @@ check_d:
 
 check_s:
     li   $t0, TECLA_S
-    bne  $t5, $t0, check_q
+    bne  $t5, $t0, check_espacio
     move $s4, $a2 # Save original Y
     addi $a2, $a2, 1
     jal  check_collision
@@ -159,9 +138,17 @@ check_s:
 
 land_piece:
     move $a2, $s4 # Restore original Y
-    jal  freeze_piece
-    jal  check_and_clear_lines
-    jal  spawn_new_piece
+    jal  freeze_piece             # guarda tipo+1 en el tablero; $v0 = 1 si la rechaza
+    bne  $v0, $zero, input_done
+    jal  nuc_finalizar_jugada     # lineas, puntaje, nivel y pieza nueva
+    j    input_done
+
+check_espacio:
+    li   $t0, TECLA_ESPACIO
+    bne  $t5, $t0, check_q
+    jal  log_hard_drop            # baja la pieza hasta chocar y la fija
+    bne  $v1, $zero, input_done   # $v1 = 1: no se pudo fijar
+    jal  nuc_finalizar_jugada     # la pieza ya esta fijada: no llamar freeze_piece otra vez
     j    input_done
     
 check_q:
@@ -259,8 +246,8 @@ gravity_lands_piece:
     # We need to use the original Y coordinate from before the downward move attempt.
     move $a2, $s4          # Restore original Y for freezing
     jal  freeze_piece
-    jal  check_and_clear_lines
-    jal  spawn_new_piece
+    bne  $v0, $zero, gravity_exit
+    jal  nuc_finalizar_jugada     # lineas, puntaje, nivel y pieza nueva
 
 gravity_exit:
     # --- Epilogue: Restore saved registers ---
@@ -274,6 +261,47 @@ gravity_exit:
     addi $sp, $sp, 28
     jr   $ra
     
+#-----------------------------------------------------------------------------
+# nuc_finalizar_jugada: cierra una jugada despues de fijar la pieza
+# (con S, con la gravedad o con la caida instantanea). Se llama UNA vez.
+#   1. check_and_clear_lines borra las lineas llenas y devuelve cuantas ($v0)
+#      (ya las suma a LINES_CLEARED).
+#   2. log_update_score da 100/300/500/800 x nivel. Se usa el nivel que
+#      habia ANTES de subir.
+#   3. update_speed recalcula NIVEL y velocidad, o pasa a VICTORIA.
+#   4. Si no gano, reinicia el temporizador y saca la pieza siguiente.
+# Argumentos: ninguno. Retorno: ninguno. Preserva: $ra
+#-----------------------------------------------------------------------------
+nuc_finalizar_jugada:
+    addi $sp, $sp, -4
+    sw   $ra, 0($sp)
+
+    jal  check_and_clear_lines    # $v0 = lineas borradas en esta jugada
+    move $a0, $v0                 # $a0 = lineas (0..4)
+    la   $t0, NIVEL
+    lw   $a1, 0($t0)              # $a1 = nivel actual (1..10)
+    jal  log_update_score         # suma los puntos a SCORE
+    jal  update_speed             # nivel, velocidad o VICTORIA
+
+    la   $t0, ESTADO
+    lw   $t0, 0($t0)
+    li   $t1, EST_VICTORIA
+    bne  $t0, $t1, nuc_fj_seguir
+    jal  update_high_score        # gano: guardar el record y no sacar pieza
+    j    nuc_fj_fin
+
+nuc_fj_seguir:
+    li   $v0, 30                  # reiniciar el temporizador de gravedad para
+    syscall                       # que la pieza nueva no caiga de inmediato
+    la   $t0, LAST_GRAVITY_TIME
+    sw   $a0, 0($t0)
+    jal  spawn_new_piece
+
+nuc_fj_fin:
+    lw   $ra, 0($sp)
+    addi $sp, $sp, 4
+    jr   $ra
+
 #-----------------------------------------------------------------------------
 # nuc_pieza_aleatoria: sortea un tipo de pieza.
 # Retorna: $v0 = tipo al azar (0=I, 1=J, 2=L, 3=O, 4=S, 5=T, 6=Z)

@@ -93,13 +93,29 @@ gfx_lp_loop:
 # (en main.asm, en gl_fin). Sin esta llamada no se ve nada.
 # Argumentos: ninguno
 # Retorno: ninguno
-# Preserva: todo salvo $t0-$t4 (hoja)
+# Preserva: todo salvo $t0-$t5 (hoja)
 # ------------------------------------------------------------
 .globl gfx_presentar
 gfx_presentar:
     la   $t0, gfx_sombra                 # buffer de dibujo
     li   $t1, GFX_BASE                   # pantalla
     li   $t2, GFX_PANT_CELDAS
+    # Los primeros cuadros se copian completos: al empezar a correr, MARS
+    # limpia la ventana del Bitmap Display (o muestra restos de la corrida
+    # anterior) aunque la memoria ya tenga el dibujo. Sin esto el menu
+    # salia negro o mezclado con la pantalla anterior.
+    lw   $t5, gfx_cuadros_completos
+    blez $t5, gfx_pr_loop                # ya no: copiar solo lo que cambio
+    addi $t5, $t5, -1
+    sw   $t5, gfx_cuadros_completos
+gfx_pr_todo:
+    lw   $t3, 0($t0)
+    sw   $t3, 0($t1)
+    addi $t0, $t0, 4
+    addi $t1, $t1, 4
+    addi $t2, $t2, -1
+    bne  $t2, $zero, gfx_pr_todo
+    jr   $ra
 gfx_pr_loop:
     lw   $t3, 0($t0)
     lw   $t4, 0($t1)
@@ -770,6 +786,7 @@ gfx_pantalla_menu:
 # Todo se dibuja aqui y gfx_presentar copia a la pantalla lo que cambio.
 # Empieza en 0 (negro), igual que la pantalla al arrancar.
 gfx_sombra:       .space 4096
+gfx_cuadros_completos: .word 10          # cuadros iniciales que se copian enteros
 gfx_t_pts:        .asciiz "PTS"
 gfx_t_rec:        .asciiz "REC"
 gfx_t_nivel:      .asciiz "NV"

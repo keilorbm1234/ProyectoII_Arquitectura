@@ -1,0 +1,24 @@
+Fecha: 2026-11-06 (America/Guatemala).
+Alcance: ensamblado de main.asm, sin ejecutar una partida.
+Código de salida real: 1
+Comando: java -Xmx512m -Djava.awt.headless=true -jar <Mars4_5.jar> nc a ae1 main.asm
+
+Salida real:
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 17 column 15: "ANCHO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 18 column 15: "ALTO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 68 column 15: "ANCHO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 75 column 15: "ALTO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 80 column 15: "ANCHO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 158 column 15: "ANCHO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 202 column 15: "ALTO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 213 column 15: "ANCHO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 223 column 15: "ANCHO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 234 column 15: "ANCHO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 247 column 15: "ANCHO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 255 column 15: "ANCHO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 284 column 15: "ALTO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 296 column 15: "ANCHO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 305 column 15: "ANCHO": operand is of incorrect type
+Error in C:\Users\Andre\OneDrive\Escritorio\Proyecto  de arqui\ProyectoII_Arquitectura\logica.asm line 411 column 15: "ANCHO": operand is of incorrect type
+
+Processing terminated due to errors.
