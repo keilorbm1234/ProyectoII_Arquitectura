@@ -1,0 +1,67 @@
+Fecha: 2026-11-06 (America/Guatemala).
+Referencia declarada: d4c181045f870ede460be3f0c2591b48f41d33f2
+Los ocho archivos descargados se comprobaron contra los blob SHA de GitHub antes de esta ejecuciÃ³n.
+Candidato: mÃ³dulos del equipo sin editar, con logica.asm y piezas.asm de la rama de Andrey.
+Directorio temporal del candidato: C:\Users\Andre\AppData\Local\Temp\andrey-integracion-88e5fa4999a84d9b9fd2745fd285b97f
+El wrapper llama directamente a los procedimientos; no representa una partida ni prueba el teclado.
+El nivel de puntaje se entrega explÃ­citamente. No se establece una polÃ­tica de ascenso.
+Ensamblado del main candidato, cÃ³digo de salida: 0
+Prueba cruzada, cÃ³digo de salida: 1
+
+SHA256 de los archivos originales de referencia:
+main.asm: F43A42651C945136CADB35A42A8DADB822A1199D6507162A46226C393F07CEB6
+datos.asm: 873F7BC8D83A80140345AAC3A035C2824556FB8331D24760A2C5A2D70C215188
+nucleo.asm: 78636C0191A792A25456CC3651D156EC38F6C06EF4BC4A300172F2FC402AD05B
+graficos.asm: C7C8811F99FE1C7F6416423B7AD423AA9F1475F5AD99BC033290A7BA3A2E77A8
+macros.asm: 4043F924DB74CBD2CF4EB1EF8517AC549BE069241F221BD39F67C4DB001EE6F1
+fuente.asm: 17540CAE2CA5F8A946C98F3E02A129A9243617BC1193FA1B5413518C232B6DF4
+piezas.asm: 819356B525A95F0AB6C6476287E197F8B84B57EED26CE59AD4A3F95601FC1270
+logica.asm: 8A971B5DBFD701EB2627D178FF1A5EEEE501432288773F6F0BFFA8C4A786058E
+
+Salida real del ensamblador:
+
+Salida real de la prueba cruzada:
+XR01 preserve s0: PASS
+XR01 preserve s1: PASS
+XR01 preserve s2: PASS
+XR01 preserve s3: PASS
+XR01 preserve s4: PASS
+XR01 preserve s5: PASS
+XR01 preserve s6: PASS
+XR01 preserve s7: PASS
+XR02 floor is not overwritten by the first out-of-board word: PASS
+XR03 frozen color ID 1: FAIL actual=2278750 expected=65535
+XR03 frozen color ID 2: FAIL actual=2278750 expected=255
+XR03 frozen color ID 3: FAIL actual=2278750 expected=16753920
+XR03 frozen color ID 4: FAIL actual=2278750 expected=16776960
+XR03 frozen color ID 5: FAIL actual=2278750 expected=65280
+XR03 frozen color ID 6: FAIL actual=2278750 expected=8388736
+XR03 frozen color ID 7: FAIL actual=2278750 expected=16711680
+XR10 hard drop distance: PASS
+XR10 hard drop status: PASS
+XR10 drop leaves score unchanged: PASS
+XR10 drop leaves lines unchanged: PASS
+XR11 four-line count: PASS
+XR11 lines accumulated once: PASS
+XR11 clearing leaves score unchanged: PASS
+XR12 four-line award at supplied level 2: PASS
+XR12 score total: PASS
+XR12 scoring does not recount lines: PASS
+XR13 real core level after 11 lines: PASS
+XR13 real core gravity at level 3: PASS
+XR13 move continues: PASS
+XR14 level at 0 lines: PASS
+XR14 state at 0 lines: PASS
+XR14 level at 4 lines: PASS
+XR14 state at 4 lines: PASS
+XR14 level at 5 lines: PASS
+XR14 state at 5 lines: PASS
+XR14 level at 6 lines: PASS
+XR14 state at 6 lines: PASS
+XR14 level at 45 lines: PASS
+XR14 state at 45 lines: PASS
+XR14 level at 49 lines: PASS
+XR14 state at 49 lines: PASS
+XR14 level at 50 lines: PASS
+XR14 state at 50 lines: PASS
+XR_SUMMARY checks=43 failures=7

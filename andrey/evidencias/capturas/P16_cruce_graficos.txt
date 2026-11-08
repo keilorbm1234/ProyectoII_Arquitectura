@@ -1,0 +1,9 @@
+XJ01 saved-register preservation: FAIL
+observed s0 (expected 1000): 268503184
+observed s1 (expected 1001): 0
+observed s2 (expected 1002): 512
+XJ02 ignores logical index 200: FAIL
+pixel expected background: 6316128
+pixel observed: 2278750
+
+-- program is finished running --

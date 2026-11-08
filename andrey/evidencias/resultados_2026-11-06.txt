@@ -1,0 +1,64 @@
+Fecha: 2026-11-06 (America/Guatemala).
+Base de implementación real: f74780ca07806abcc63d9e34d77da1b8ea30e1b7 (2026-11-01).
+Alcance: reejecución de las suites existentes con MARS 4.5 y exportación de sus vistas.
+Java usado: 1.8.0_491; compilador de la herramienta: javac 1.8.0_362.
+Delayed branching: desactivado. Una sola suite ensamblada cada vez.
+Herramienta: andrey/pruebas/capturar.ps1 y CapturarMars.java.
+Comando: powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\andrey\pruebas\capturar.ps1 -MarsJar <Mars4_5.jar> -Java <java.exe> -Javac <javac.exe>
+Código de salida de la herramienta: 0. Confirma suites propias y exportación; no aprueba gráficos.
+Vistas: 29 PNG mediante JFrame.printAll de la ventana real; no son capturas del escritorio.
+Se reemplazaron los intentos negros de captura del escritorio; no se retocaron resultados.
+Cada vista de lógica tiene un TXT con fecha, caso, PC, retornos, registros y tablero completo.
+Los programas MIPS y los módulos de Keilor/Jorge no se editaron para esta revalidación.
+Escenarios: 42 + 104 + 89 = 235. Comprobaciones: 4580 + 12311 + 21020 = 37911.
+
+Consolas reales de las ejecuciones:
+
+etapa1.asm:
+PASS assertions: 4580
+
+-- program is finished running --
+
+
+etapa2.asm:
+PASS assertions: 12311
+
+-- program is finished running --
+
+
+etapa3.asm:
+PASS assertions: 21020
+
+-- program is finished running --
+
+
+Prueba cruzada real (fallos abiertos para Jorge):
+XJ01 saved-register preservation: FAIL
+observed s0 (expected 1000): 268503184
+observed s1 (expected 1001): 0
+observed s2 (expected 1002): 512
+XJ02 ignores logical index 200: FAIL
+pixel expected background: 6316128
+pixel observed: 2278750
+
+-- program is finished running --
+
+
+Ensamblado de producción: exit 1. No se ejecutó una partida integrada.
+Salida completa: ensamblado_integracion_2026-11-06.txt.
+Las constantes ANCHO y ALTO siguen sin definirse en datos.asm.
+El nivel usado al cruzar un ascenso sigue pendiente de acuerdo con Keilor.
+Las huellas SHA256 se conservan en manifiesto_2026-11-06.sha256.
+
+Actualización después de consultar GitHub:
+main remoto d4c181045f870ede460be3f0c2591b48f41d33f2 ya define dimensiones y completa el ciclo.
+Los ocho archivos ASM de referencia se comprobaron contra sus blob SHA de GitHub.
+En carpeta temporal, main actualizado + lógica/piezas de Andrey: ensamblado exit 0.
+La prueba actual tiene 43 comparaciones: 36 PASS y 7 FAIL exclusivamente de colores de IDs.
+Las 27 comparaciones del contrato lógica/núcleo pasan; no se ejecutó una partida completa.
+Evidencia de referencia: cruce_referencia_2026-11-06.txt.
+Identificadores de archivos remotos: referencia_github_2026-11-06.json.
+Se añadieron P17_graficos_actuales.png y P18_contratos_actuales.png; total actual: 31 vistas.
+Las vistas P01-P16 corresponden a las suites y módulos de la base local.
+La protección del driver heredado sale con código 2 ante la reserva nueva de 800 bytes.
+Salida de esa comprobación: proteccion_prueba_heredada_2026-11-06.txt.
