@@ -1,7 +1,7 @@
 # Tetris en ensamblador MIPS (MARS)
 
 Proyecto II del curso EIF205 Arquitectura de Computadoras, Universidad Nacional.
-Integrantes: Keilor Baltodano, Andrey y Jorge.
+Integrantes: Keilor Baltodano, Andrey Chacón Sánchez y Jorge Navarro Vega.
 
 Es una versión de Tetris escrita en ensamblador MIPS32 para el simulador MARS 4.5. Usa el **Bitmap Display** para la pantalla y el **Keyboard and Display MMIO Simulator** para el teclado.
 
